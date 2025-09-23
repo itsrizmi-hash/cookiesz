@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Orders - Universal</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: rgba(255, 255, 255, 0.8);
+            color: #333;
+        }
+
+        .sync-status {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .sync-status.offline {
+            background: rgba(255, 152, 0, 0.3);
+            border-color: rgba(255, 152, 0, 0.5);
+        }
+
+        .sync-status.error {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: rgba(244, 67, 54, 0.5);
+        }
+
+        /* Business ID Setup */
+        .business-setup {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .setup-form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .setup-input, .login-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+        }
+
+        .setup-btn, .login-btn {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff8a80);
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #2196f3, #64b5f6);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* Owner Login */
+        .owner-login {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Customer Interface */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
+        }
+
+        .cookie-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .cookie-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .cookie-item:focus-within {
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .cookie-item label {
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: white;
+        }
+
+        .cookie-item input {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .topping-checkbox {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .topping-checkbox:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .topping-checkbox input {
+            width: auto;
+            margin-right: 10px;
+            transform: scale(1.3);
+        }
+
+        .price-display {
+            background: linear-gradient(135deg, rgba(255, 235, 59, 0.3), rgba(255, 193, 7, 0.2));
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 24px;
+            border: 2px solid rgba(255, 235, 59, 0.5);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #ff6b6b, #ff8a80);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800, #ffb74d);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #4ecdc4, #80cbc4);
+        }
+
+        .submit-btn {
+            width: 100%;
+            font-size: 18px;
+            padding: 18px;
+            margin-top: 20px;
+        }
+
+        /* Owner Dashboard */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .summary-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .summary-box:hover {
+            transform: translateY(-2px);
+        }
+
+        .summary-title {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .summary-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .order-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .order-item:hover {
+            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .order-item.delivered {
+            background: rgba(76, 175, 80, 0.2);
+            border-left-color: #4caf50;
+        }
+
+        .order-item.payment-received {
+            background: rgba(76, 175, 80, 0.4);
+            border: 2px solid rgba(76, 175, 80, 0.6);
+        }
+
+        .customer-info {
+            flex-grow: 1;
+        }
+
+        .customer-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .order-details {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 2px;
+        }
+
+        .buyer-id-display {
+            font-size: 12px;
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+
+        .amount {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffeb3b;
+            margin-right: 10px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            border-radius: 8px;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: rgba(76, 175, 80, 0.9);
+        }
+
+        .notification.error {
+            background: rgba(244, 67, 54, 0.9);
+        }
+
+        .order-success {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-message {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #4caf50;
+        }
+
+        .cloud-storage-info {
+            background: rgba(33, 150, 243, 0.3);
+            border: 1px solid rgba(33, 150, 243, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .business-id {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .buyer-id-section {
+            background: rgba(156, 39, 176, 0.3);
+            border: 1px solid rgba(156, 39, 176, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .create-buyer-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .cookie-inputs {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .action-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">Cookie Orders</div>
+        <div class="mode-toggle">
+            <button class="toggle-btn active" id="customerBtn">Customer</button>
+            <button class="toggle-btn" id="ownerBtn">Owner</button>
+        </div>
+    </div>
+
+    <!-- Sync Status -->
+    <div id="syncStatus" class="sync-status">
+        Storage: In-Memory Only
+    </div>
+
+    <!-- Business ID Setup (For Buyers) -->
+    <div id="businessSetup" class="business-setup">
+        <div class="container">
+            <h2>Create Your Buyer ID</h2>
+            <div class="setup-form">
+                <p style="margin-bottom: 20px; opacity: 0.9;">Create your unique Buyer ID to start ordering cookies!</p>
+                <div style="display: flex; align-items: center;">
+                    <input type="text" id="businessIdInput" class="setup-input" placeholder="Enter Buyer ID (e.g., BUYER-2024)">
+                    <button class="generate-btn" id="generateIdBtn">Random</button>
+                </div>
+                <small style="opacity: 0.8;">Orders are stored locally in this session</small>
+                <button class="setup-btn" id="setupBusinessBtn">Start Ordering</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Owner Login -->
+    <div id="ownerLogin" class="owner-login hidden">
+        <div class="container">
+            <h2>Owner Access</h2>
+            <div class="login-form">
+                <p style="margin-bottom: 20px; opacity: 0.9;">Enter owner credentials to access dashboard</p>
+                <input type="text" id="ownerBusinessId" class="login-input" placeholder="Business ID">
+                <input type="password" id="ownerPassword" class="login-input" placeholder="Password">
+                <button class="login-btn" id="ownerLoginBtn">Access Dashboard</button>
+                <button class="back-btn" id="backToCustomerBtn">Back to Customer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Business Info -->
+    <div id="businessInfo" class="cloud-storage-info hidden">
+        <h4 style="margin-top: 0;">Session Storage Active</h4>
+        <p style="margin-bottom: 10px;"><strong>Buyer ID:</strong> <span class="business-id" id="buyerId"></span></p>
+        <p style="font-size: 14px; opacity: 0.9; margin: 0;">Your orders are stored in this session only</p>
+    </div>
+
+    <!-- Owner Business Info -->
+    <div id="ownerBusinessInfo" class="buyer-id-section hidden">
+        <h4 style="margin-top: 0;">Owner Dashboard Active</h4>
+        <p style="margin-bottom: 10px;"><strong>Business ID:</strong> <span class="business-id" id="ownerBusinessIdDisplay"></span></p>
+        <p style="font-size: 14px; opacity: 0.9; margin: 0;">All orders from this session are visible here</p>
+    </div>
+
+    <!-- Customer Interface -->
+    <div id="customerInterface" class="customer-interface hidden">
+        <div class="container">
+            <h1>Place Your Cookie Order</h1>
+            
+            <div class="input-group">
+                <label>Your Name:</label>
+                <input type="text" id="customerName" placeholder="Enter your name" autocomplete="name">
+            </div>
+            
+            <div class="input-group">
+                <label>Room Number:</label>
+                <input type="text" id="customerRoom" placeholder="e.g., C001, C324" autocomplete="off">
+            </div>
+            
+            <div class="input-group">
+                <label>Select Cookie Types & Quantities:</label>
+                <div class="cookie-inputs">
+                    <div class="cookie-item">
+                        <label>Milk Chocolate</label>
+                        <input type="number" id="mcQty" min="0" max="20" value="0">
+                    </div>
+                    <div class="cookie-item">
+                        <label>Double Chocolate</label>
+                        <input type="number" id="dcQty" min="0" max="20" value="0">
+                    </div>
+                    <div class="cookie-item">
+                        <label>Original</label>
+                        <input type="number" id="orQty" min="0" max="20" value="0">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="topping-checkbox">
+                <input type="checkbox" id="wcTopping">
+                <label for="wcTopping">Add WC Topping (+RM1.00)</label>
+            </div>
+            
+            <div class="price-display" id="priceDisplay">
+                Total: RM0.00
+            </div>
+            
+            <button class="btn-success submit-btn" id="submitBtn">
+                Place Order
+            </button>
+        </div>
+    </div>
+
+    <!-- Order Success -->
+    <div id="orderSuccess" class="order-success hidden">
+        <div class="container">
+            <div class="success-message">Order Placed Successfully!</div>
+            <p>Your order has been received and will be processed soon.</p>
+            <p><strong>Order Summary:</strong></p>
+            <div id="orderSummary" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 15px 0;"></div>
+            <button class="btn-info" id="anotherOrderBtn">Place Another Order</button>
+        </div>
+    </div>
+
+    <!-- Owner Dashboard -->
+    <div id="ownerDashboard" class="owner-dashboard hidden">
+        <div class="container">
+            <h1>Owner Dashboard</h1>
+            
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <div class="summary-title">Total Orders</div>
+                    <div class="summary-value" id="totalOrders">0</div>
+                </div>
+                <div class="summary-box">
+                    <div class="summary-title">Total Revenue</div>
+                    <div class="summary-value">RM<span id="totalRevenue">0.00</span></div>
+                </div>
+                <div class="summary-box">
+                    <div class="summary-title">Pending Orders</div>
+                    <div class="summary-value" id="pendingOrders">0</div>
+                </div>
+                <div class="summary-box">
+                    <div class="summary-title">Completed Orders</div>
+                    <div class="summary-value" id="completedOrders">0</div>
+                </div>
+            </div>
+
+            <!-- Create Buyer ID Section -->
+            <div class="create-buyer-section">
+                <h3>Create New Buyer ID</h3>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="newBuyerIdInput" placeholder="Enter new Buyer ID" style="flex-grow: 1; min-width: 200px;">
+                    <button class="btn-info" id="createBuyerBtn">Create Buyer</button>
+                    <button class="generate-btn" id="generateBuyerIdBtn">Random</button>
+                </div>
+                <small style="opacity: 0.8;">Create buyer IDs for customers or yourself</small>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h3>All Orders</h3>
+                <div>
+                    <button class="btn-info" id="refreshBtn">Refresh</button>
+                    <button class="btn-warning" id="exportBtn">Export</button>
+                    <button id="logoutOwnerBtn" style="background: #9c27b0;">Logout</button>
+                </div>
+            </div>
+            
+            <div id="orderList" class="order-list">
+                <!-- Orders will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // Global variables
+        let orders = [];
+        let currentView = 'setup';
+        let BUYER_ID = '';
+        let isOwner = false;
+        const MAIN_BUSINESS_ID = 'khawarizmi-100499';
+        const OWNER_PASSWORD = 'khawarizmi-100499';
+        
+        // In-memory storage manager (no external APIs)
+        const StorageManager = {
+            save(data) {
+                try {
+                    orders = [...data]; // Deep copy to prevent mutations
+                    console.log('Orders saved to memory:', orders.length);
+                    return true;
+                } catch (error) {
+                    console.error('Storage save failed:', error);
+                    return false;
+                }
+            },
+            
+            load() {
+                try {
+                    console.log('Loading orders from memory:', orders.length);
+                    return [...orders]; // Return copy to prevent mutations
+                } catch (error) {
+                    console.error('Storage load failed:', error);
+                    return [];
+                }
+            }
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            console.log('Initializing Cookie Orders App...');
+            
+            try {
+                setupEventListeners();
+                showBusinessSetup();
+                showNotification('App loaded successfully!', 'success');
+            } catch (error) {
+                console.error('App initialization failed:', error);
+                showNotification('Failed to load app. Please refresh.', 'error');
+            }
+        }
+
+        function setupEventListeners() {
+            // Business setup
+            document.getElementById('generateIdBtn').addEventListener('click', generateRandomId);
+            document.getElementById('setupBusinessBtn').addEventListener('click', setupBusiness);
+            document.getElementById('businessIdInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') setupBusiness();
+            });
+            
+            // Owner login
+            document.getElementById('ownerLoginBtn').addEventListener('click', ownerLogin);
+            document.getElementById('backToCustomerBtn').addEventListener('click', backToCustomer);
+            document.getElementById('ownerBusinessId').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') document.getElementById('ownerPassword').focus();
+            });
+            document.getElementById('ownerPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') ownerLogin();
+            });
+            
+            // Cookie quantity inputs
+            document.getElementById('mcQty').addEventListener('input', updatePriceDisplay);
+            document.getElementById('dcQty').addEventListener('input', updatePriceDisplay);
+            document.getElementById('orQty').addEventListener('input', updatePriceDisplay);
+            document.getElementById('wcTopping').addEventListener('change', updatePriceDisplay);
+            
+            // Navigation buttons
+            document.getElementById('customerBtn').addEventListener('click', showCustomerInterface);
+            document.getElementById('ownerBtn').addEventListener('click', showOwnerLogin);
+            
+            // Customer form
+            document.getElementById('submitBtn').addEventListener('click', submitOrder);
+            document.getElementById('anotherOrderBtn').addEventListener('click', placeAnotherOrder);
+            
+            // Owner dashboard
+            document.getElementById('refreshBtn').addEventListener('click', refreshOrders);
+            document.getElementById('exportBtn').addEventListener('click', exportOrders);
+            document.getElementById('logoutOwnerBtn').addEventListener('click', logoutOwner);
+            document.getElementById('createBuyerBtn').addEventListener('click', createBuyerIdByOwner);
+            document.getElementById('generateBuyerIdBtn').addEventListener('click', generateBuyerIdForOwner);
+        }
+
+        function showBusinessSetup() {
+            currentView = 'setup';
+            isOwner = false;
+            document.getElementById('businessSetup').classList.remove('hidden');
+            document.getElementById('ownerLogin').classList.add('hidden');
+            document.getElementById('businessInfo').classList.add('hidden');
+            document.getElementById('ownerBusinessInfo').classList.add('hidden');
+            document.getElementById('customerInterface').classList.add('hidden');
+            document.getElementById('orderSuccess').classList.add('hidden');
+            document.getElementById('ownerDashboard').classList.add('hidden');
+            
+            // Update nav buttons
+            document.getElementById('customerBtn').classList.add('active');
+            document.getElementById('ownerBtn').classList.remove('active');
+        }
+
+        function showOwnerLogin() {
+            currentView = 'ownerLogin';
+            document.getElementById('businessSetup').classList.add('hidden');
+            document.getElementById('ownerLogin').classList.remove('hidden');
+            document.getElementById('businessInfo').classList.add('hidden');
+            document.getElementById('ownerBusinessInfo').classList.add('hidden');
+            document.getElementById('customerInterface').classList.add('hidden');
+            document.getElementById('orderSuccess').classList.add('hidden');
+            document.getElementById('ownerDashboard').classList.add('hidden');
+            
+            // Update nav buttons
+            document.getElementById('customerBtn').classList.remove('active');
+            document.getElementById('ownerBtn').classList.add('active');
+            
+            // Clear previous inputs
+            document.getElementById('ownerBusinessId').value = '';
+            document.getElementById('ownerPassword').value = '';
+        }
+
+        function backToCustomer() {
+            if (BUYER_ID) {
+                showMainInterface();
+            } else {
+                showBusinessSetup();
+            }
+        }
+
+        function ownerLogin() {
+            const businessId = document.getElementById('ownerBusinessId').value.trim();
+            const password = document.getElementById('ownerPassword').value.trim();
+            
+            if (!businessId || !password) {
+                showNotification('Please enter both Business ID and Password!', 'error');
+                return;
+            }
+            
+            if (businessId === MAIN_BUSINESS_ID && password === OWNER_PASSWORD) {
+                isOwner = true;
+                BUYER_ID = MAIN_BUSINESS_ID;
+                loadOrders();
+                showOwnerDashboard();
+                showNotification('Welcome back, Owner!', 'success');
+            } else {
+                showNotification('Invalid credentials! Please check Business ID and Password.', 'error');
+            }
+        }
+
+        function logoutOwner() {
+            if (confirm('Are you sure you want to logout?')) {
+                isOwner = false;
+                BUYER_ID = '';
+                orders = [];
+                showBusinessSetup();
+                showNotification('Logged out successfully.', 'success');
+            }
+        }
+
+        function showMainInterface() {
+            document.getElementById('businessSetup').classList.add('hidden');
+            document.getElementById('ownerLogin').classList.add('hidden');
+            
+            if (isOwner) {
+                document.getElementById('businessInfo').classList.add('hidden');
+                document.getElementById('ownerBusinessInfo').classList.remove('hidden');
+                document.getElementById('ownerBusinessIdDisplay').textContent = BUYER_ID;
+            } else {
+                document.getElementById('businessInfo').classList.remove('hidden');
+                document.getElementById('ownerBusinessInfo').classList.add('hidden');
+                document.getElementById('buyerId').textContent = BUYER_ID;
+            }
+            
+            updatePriceDisplay();
+            updateSyncStatus('ready');
+        }
+
+        function generateRandomId() {
+            const prefixes = ['BUYER', 'CUSTOMER', 'USER', 'CLIENT'];
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+            const year = new Date().getFullYear();
+            const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+            
+            document.getElementById('businessIdInput').value = ${prefix}-${year}-${random};
+        }
+
+        function generateBuyerIdForOwner() {
+            const prefixes = ['BUYER', 'CUSTOMER', 'VIP', 'CLIENT'];
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+            const year = new Date().getFullYear();
+            const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+            
+            document.getElementById('newBuyerIdInput').value = ${prefix}-${year}-${random};
+        }
+
+        function setupBusiness() {
+            const businessIdInput = document.getElementById('businessIdInput');
+            const inputId = businessIdInput.value.trim().toUpperCase();
+            
+            if (!inputId) {
+                showNotification('Please enter a Buyer ID!', 'error');
+                return;
+            }
+            
+            if (inputId.length < 3) {
+                showNotification('Buyer ID must be at least 3 characters!', 'error');
+                return;
+            }
+            
+            BUYER_ID = inputId;
+            console.log('Buyer ID set to:', BUYER_ID);
+            showMainInterface();
+            loadOrders();
+            
+            showNotification(Buyer "${BUYER_ID}" is ready!, 'success');
+        }
+
+        function createBuyerIdByOwner() {
+            if (!isOwner) {
+                showNotification('Only owner can create buyer IDs!', 'error');
+                return;
+            }
+            
+            const newBuyerId = document.getElementById('newBuyerIdInput').value.trim().toUpperCase();
+            
+            if (!newBuyerId) {
+                showNotification('Please enter a Buyer ID!', 'error');
+                return;
+            }
+            
+            if (newBuyerId.length < 3) {
+                showNotification('Buyer ID must be at least 3 characters!', 'error');
+                return;
+            }
+            
+            // Clear the input
+            document.getElementById('newBuyerIdInput').value = '';
+            
+            showNotification(Buyer ID "${newBuyerId}" created successfully! Share this with customers., 'success');
+        }
+
+        function loadOrders() {
+            try {
+                updateSyncStatus('ready');
+                const loadedOrders = StorageManager.load();
+                console.log('Loaded orders:', loadedOrders.length);
+                
+                if (currentView === 'owner') {
+                    loadOwnerDashboard();
+                }
+            } catch (error) {
+                console.error('Failed to load orders:', error);
+                updateSyncStatus('error');
+            }
+        }
+
+        function saveOrders() {
+            try {
+                const success = StorageManager.save(orders);
+                if (success) {
+                    console.log('Orders saved successfully');
+                    updateSyncStatus('ready');
+                    return true;
+                } else {
+                    console.warn('Failed to save orders');
+                    updateSyncStatus('error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Failed to save orders:', error);
+                updateSyncStatus('error');
+                return false;
+            }
+        }
+
+        function updateSyncStatus(status) {
+            const statusEl = document.getElementById('syncStatus');
+            
+            switch (status) {
+                case 'ready':
+                    statusEl.textContent = 'Storage: In-Memory (Session Only)';
+                    statusEl.className = 'sync-status';
+                    break;
+                case 'error':
+                    statusEl.textContent = 'Storage: Error - Data may be lost';
+                    statusEl.className = 'sync-status error';
+                    break;
+            }
+        }
+
+        // Interface switching
+        function showCustomerInterface() {
+            if (!BUYER_ID) {
+                showBusinessSetup();
+                return;
+            }
+            
+            currentView = 'customer';
+            document.getElementById('customerInterface').classList.remove('hidden');
+            document.getElementById('orderSuccess').classList.add('hidden');
+            document.getElementById('ownerDashboard').classList.add('hidden');
+            
+            document.getElementById('customerBtn').classList.add('active');
+            document.getElementById('ownerBtn').classList.remove('active');
+            
+            showMainInterface();
+        }
+
+        function showOwnerDashboard() {
+            if (!isOwner) {
+                showNotification('Access denied! Please login as owner first.', 'error');
+                showOwnerLogin();
+                return;
+            }
+            
+            currentView = 'owner';
+            document.getElementById('customerInterface').classList.add('hidden');
+            document.getElementById('orderSuccess').classList.add('hidden');
+            document.getElementById('ownerDashboard').classList.remove('hidden');
+            
+            document.getElementById('customerBtn').classList.remove('active');
+            document.getElementById('ownerBtn').classList.add('active');
+            
+            showMainInterface();
+            loadOwnerDashboard();
+        }
+
+        // Pricing functions
+        function calculatePrice(totalPieces) {
+            if (totalPieces === 0) return 0;
+            
+            let remainingPieces = totalPieces;
+            let totalPrice = 0;
+            
+            // Bulk pricing: 4 pieces = RM6
+            while (remainingPieces >= 4) {
+                totalPrice += 6;
+                remainingPieces -= 4;
+            }
+            
+            // Individual pricing
+            if (remainingPieces === 3) {
+                totalPrice += 5; // 3 pieces = RM5
+            } else if (remainingPieces === 2) {
+                totalPrice += 3; // 2 pieces = RM3
+            } else if (remainingPieces === 1) {
+                totalPrice += 2; // 1 piece = RM2
+            }
+            
+            return totalPrice;
+        }
+
+        function updatePriceDisplay() {
+            const mcQty = parseInt(document.getElementById('mcQty').value) || 0;
+            const dcQty = parseInt(document.getElementById('dcQty').value) || 0;
+            const orQty = parseInt(document.getElementById('orQty').value) || 0;
+            const wcTopping = document.getElementById('wcTopping').checked;
+            
+            const totalPieces = mcQty + dcQty + orQty;
+            let totalPrice = calculatePrice(totalPieces);
+            
+            if (wcTopping && totalPieces > 0) {
+                totalPrice += 1;
+            }
+            
+            document.getElementById('priceDisplay').textContent = Total: RM${totalPrice.toFixed(2)};
+        }
+
+        // Customer order submission
+        function submitOrder() {
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (submitBtn.disabled) return; // Prevent double submission
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting Order...';
+                
+                const name = document.getElementById('customerName').value.trim();
+                const room = document.getElementById('customerRoom').value.trim();
+                const mcQty = parseInt(document.getElementById('mcQty').value) || 0;
+                const dcQty = parseInt(document.getElementById('dcQty').value) || 0;
+                const orQty = parseInt(document.getElementById('orQty').value) || 0;
+                const wcTopping = document.getElementById('wcTopping').checked;
+
+                // Validation
+                if (!name) {
+                    showNotification('Please enter your name!', 'error');
+                    return;
+                }
+                
+                if (!room) {
+                    showNotification('Please enter your room number!', 'error');
+                    return;
+                }
+                
+                const totalPieces = mcQty + dcQty + orQty;
+                if (totalPieces === 0) {
+                    showNotification('Please select at least one cookie!', 'error');
+                    return;
+                }
+
+                const totalPrice = calculatePrice(totalPieces) + (wcTopping && totalPieces > 0 ? 1 : 0);
+                
+                const order = {
+                    id: 'ORD' + Date.now() + Math.random().toString(36).substr(2, 5),
+                    timestamp: new Date().toISOString(),
+                    customerName: name,
+                    roomNumber: room,
+                    buyerId: BUYER_ID,
+                    items: {
+                        milkChocolate: mcQty,
+                        doubleChocolate: dcQty,
+                        original: orQty,
+                        wcTopping: wcTopping && totalPieces > 0
+                    },
+                    totalPieces: totalPieces,
+                    totalPrice: totalPrice,
+                    status: 'pending',
+                    paymentReceived: false
+                };
+
+                // Add order to array
+                orders.push(order);
+                console.log('New order created:', order);
+                
+                // Save to storage
+                const saveSuccess = saveOrders();
+                if (!saveSuccess) {
+                    showNotification('Warning: Order saved locally only', 'error');
+                }
+                
+                // Show success
+                showOrderSuccess(order);
+                resetOrderForm();
+                showNotification('Order placed successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Order submission failed:', error);
+                showNotification('Failed to place order. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Place Order';
+            }
+        }
+
+        function showOrderSuccess(order) {
+            const summaryHTML = `
+                <div><strong>Name:</strong> ${escapeHtml(order.customerName)}</div>
+                <div><strong>Room:</strong> ${escapeHtml(order.roomNumber)}</div>
+                <div><strong>Buyer ID:</strong> ${escapeHtml(order.buyerId)}</div>
+                <div><strong>Order ID:</strong> ${escapeHtml(order.id)}</div>
+                <div style="margin-top: 10px;"><strong>Items:</strong></div>
+                ${order.items.milkChocolate > 0 ? <div>Milk Chocolate: ${order.items.milkChocolate}</div> : ''}
+                ${order.items.doubleChocolate > 0 ? <div>Double Chocolate: ${order.items.doubleChocolate}</div> : ''}
+                ${order.items.original > 0 ? <div>Original: ${order.items.original}</div> : ''}
+                ${order.items.wcTopping ? '<div>WC Topping (+RM1.00)</div>' : ''}
+                <div style="margin-top: 10px; font-size: 18px; color: #ffeb3b;"><strong>Total: RM${order.totalPrice.toFixed(2)}</strong></div>
+            `;
+            
+            document.getElementById('orderSummary').innerHTML = summaryHTML;
+            document.getElementById('customerInterface').classList.add('hidden');
+            document.getElementById('orderSuccess').classList.remove('hidden');
+        }
+
+        function placeAnotherOrder() {
+            document.getElementById('orderSuccess').classList.add('hidden');
+            document.getElementById('customerInterface').classList.remove('hidden');
+        }
+
+        function resetOrderForm() {
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerRoom').value = '';
+            document.getElementById('mcQty').value = '0';
+            document.getElementById('dcQty').value = '0';
+            document.getElementById('orQty').value = '0';
+            document.getElementById('wcTopping').checked = false;
+            updatePriceDisplay();
+        }
+
+        // Owner dashboard functions
+        function loadOwnerDashboard() {
+            updateDashboardSummary();
+            displayOrders();
+        }
+
+        function updateDashboardSummary() {
+            const totalOrders = orders.length;
+            const totalRevenue = orders.reduce((sum, order) => sum + order.totalPrice, 0);
+            const pendingOrders = orders.filter(order => order.status === 'pending').length;
+            const completedOrders = orders.filter(order => order.status === 'delivered').length;
+
+            document.getElementById('totalOrders').textContent = totalOrders;
+            document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2);
+            document.getElementById('pendingOrders').textContent = pendingOrders;
+            document.getElementById('completedOrders').textContent = completedOrders;
+        }
+
+        function displayOrders() {
+            const orderList = document.getElementById('orderList');
+            
+            if (orders.length === 0) {
+                orderList.innerHTML = '<div style="text-align: center; opacity: 0.7; padding: 40px;">No orders yet<br><small>Orders will appear here when customers place them</small></div>';
+                return;
+            }
+
+            // Sort orders by timestamp (newest first)
+            const sortedOrders = [...orders].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            const orderHTML = sortedOrders.map(order => {
+                const orderDate = new Date(order.timestamp).toLocaleDateString();
+                const orderTime = new Date(order.timestamp).toLocaleTimeString();
+                
+                let itemsText = [];
+                if (order.items.milkChocolate > 0) itemsText.push(MC:${order.items.milkChocolate});
+                if (order.items.doubleChocolate > 0) itemsText.push(DC:${order.items.doubleChocolate});
+                if (order.items.original > 0) itemsText.push(OR:${order.items.original});
+                if (order.items.wcTopping) itemsText.push('WC Topping');
+                
+                let statusClass = order.status;
+                if (order.paymentReceived) statusClass += ' payment-received';
+                
+                return `
+                    <div class="order-item ${statusClass}" id="order-${order.id}">
+                        <div class="customer-info">
+                            <div class="customer-name">${escapeHtml(order.customerName)} - Room ${escapeHtml(order.roomNumber)}</div>
+                            <div class="buyer-id-display">Buyer ID: ${escapeHtml(order.buyerId || 'Unknown')}</div>
+                            <div class="order-details">Order ID: ${escapeHtml(order.id)}</div>
+                            <div class="order-details">Items: ${escapeHtml(itemsText.join(', '))}</div>
+                            <div class="order-details">${orderDate} at ${orderTime}</div>
+                            ${order.paymentReceived ? '<div class="order-details" style="color: #4caf50;">Payment Received</div>' : ''}
+                        </div>
+                        <div class="amount">RM${order.totalPrice.toFixed(2)}</div>
+                        <div class="action-buttons">
+                            ${order.status === 'pending' ? `
+                                <button class="btn-success" onclick="markAsDelivered('${order.id}')">Delivered</button>
+                            ` : ''}
+                            ${!order.paymentReceived ? `
+                                <button class="btn-info" onclick="markPaymentReceived('${order.id}')">Paid</button>
+                            ` : ''}
+                            <button class="btn-warning" onclick="deleteOrder('${order.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            orderList.innerHTML = orderHTML;
+        }
+
+        function markAsDelivered(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = 'delivered';
+                saveOrders();
+                loadOwnerDashboard();
+                showNotification(Order ${orderId} marked as delivered!, 'success');
+            }
+        }
+
+        function markPaymentReceived(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.paymentReceived = true;
+                saveOrders();
+                loadOwnerDashboard();
+                showNotification(Payment received for order ${orderId}!, 'success');
+            }
+        }
+
+        function deleteOrder(orderId) {
+            try {
+                if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+                    return;
+                }
+                
+                console.log('Deleting order:', orderId);
+                
+                const orderIndex = orders.findIndex(order => order.id === orderId);
+                if (orderIndex === -1) {
+                    showNotification('Order not found!', 'error');
+                    return;
+                }
+                
+                const deletedOrder = orders[orderIndex];
+                orders.splice(orderIndex, 1);
+                
+                const saveSuccess = saveOrders();
+                if (!saveSuccess) {
+                    showNotification('Warning: Failed to save changes', 'error');
+                }
+                
+                loadOwnerDashboard();
+                showNotification(Order from ${deletedOrder.customerName} deleted successfully!, 'success');
+                
+            } catch (error) {
+                console.error('Failed to delete order:', error);
+                showNotification('Failed to delete order. Please try again.', 'error');
+            }
+        }
+
+        function refreshOrders() {
+            loadOrders();
+            loadOwnerDashboard();
+            showNotification('Orders refreshed!', 'success');
+        }
+
+        function exportOrders() {
+            if (orders.length === 0) {
+                showNotification('No orders to export!', 'error');
+                return;
+            }
+            
+            let csvContent = 'Order ID,Date,Time,Customer Name,Room Number,Buyer ID,Milk Chocolate,Double Chocolate,Original,WC Topping,Total Pieces,Total Price,Status,Payment Received\n';
+            
+            orders.forEach(order => {
+                const orderDate = new Date(order.timestamp).toLocaleDateString();
+                const orderTime = new Date(order.timestamp).toLocaleTimeString();
+                
+                csvContent += ${order.id},${orderDate},${orderTime},"${order.customerName}",${order.roomNumber},${order.buyerId || 'Unknown'},${order.items.milkChocolate},${order.items.doubleChocolate},${order.items.original},${order.items.wcTopping ? 'Yes' : 'No'},${order.totalPieces},${order.totalPrice.toFixed(2)},${order.status},${order.paymentReceived ? 'Yes' : 'No'}\n;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', cookie_orders_${new Date().toISOString().split('T')[0]}.csv);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('Orders exported successfully!', 'success');
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = notification ${type} show;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        // Make functions available globally for onclick handlers
+        window.markAsDelivered = markAsDelivered;
+        window.markPaymentReceived = markPaymentReceived;
+        window.deleteOrder = deleteOrder;
+        
+        console.log('Cookie Orders App script loaded successfully');
+    </script>
+</body>
+</html>
