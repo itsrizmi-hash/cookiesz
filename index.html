@@ -1,105 +1,3463 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Dashboard</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    input, button { margin: 5px; padding: 8px; }
-    h1, h2 { color: #333; }
-    ul { list-style-type: none; padding: 0; }
-    li { background: #f9f9f9; margin: 5px 0; padding: 8px; border-radius: 5px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Orders System</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-database-compat.min.js"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #3f51b5 0%, #2196f3 25%, #e91e63 50%, #ff5722 75%, #ffeb3b 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        /* Special background for both owner and customer dashboards */
+        body.aesthetic-dashboard {
+            background: linear-gradient(135deg, #ff1744 0%, #ffeb3b 25%, #2196f3 50%, #e91e63 75%, #ff9800 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Aesthetic background decorations for dashboards */
+        body.aesthetic-dashboard::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                /* Large cookies with RGB colors */
+                radial-gradient(circle at 15% 20%, rgba(255, 23, 68, 0.6) 0%, rgba(255, 23, 68, 0.4) 40%, transparent 45%),
+                radial-gradient(circle at 85% 15%, rgba(33, 150, 243, 0.5) 0%, rgba(33, 150, 243, 0.3) 35%, transparent 40%),
+                radial-gradient(circle at 25% 80%, rgba(255, 235, 59, 0.4) 0%, rgba(255, 235, 59, 0.2) 45%, transparent 50%),
+                radial-gradient(circle at 75% 85%, rgba(233, 30, 99, 0.5) 0%, rgba(233, 30, 99, 0.3) 40%, transparent 45%),
+                
+                /* Medium cookies */
+                radial-gradient(circle at 45% 30%, rgba(255, 152, 0, 0.4) 0%, rgba(255, 152, 0, 0.2) 25%, transparent 30%),
+                radial-gradient(circle at 60% 70%, rgba(63, 81, 181, 0.4) 0%, rgba(63, 81, 181, 0.2) 25%, transparent 30%),
+                radial-gradient(circle at 90% 50%, rgba(255, 87, 34, 0.3) 0%, rgba(255, 87, 34, 0.1) 25%, transparent 30%),
+                
+                /* Small cookie crumbs */
+                radial-gradient(circle at 10% 60%, rgba(255, 235, 59, 0.3) 0%, transparent 15%),
+                radial-gradient(circle at 30% 10%, rgba(255, 23, 68, 0.2) 0%, transparent 10%),
+                radial-gradient(circle at 70% 25%, rgba(33, 150, 243, 0.2) 0%, transparent 12%),
+                radial-gradient(circle at 95% 75%, rgba(233, 30, 99, 0.3) 0%, transparent 15%),
+                radial-gradient(circle at 5% 90%, rgba(255, 152, 0, 0.2) 0%, transparent 10%),
+                radial-gradient(circle at 40% 95%, rgba(63, 81, 181, 0.2) 0%, transparent 12%);
+            z-index: -2;
+            opacity: 0.7;
+        }
+
+        /* Floating noodle decorations with RGB colors */
+        body.aesthetic-dashboard::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                /* Curved noodle shapes with RGB tones */
+                linear-gradient(45deg, transparent 45%, rgba(255, 23, 68, 0.4) 47%, rgba(255, 23, 68, 0.4) 53%, transparent 55%),
+                linear-gradient(135deg, transparent 30%, rgba(255, 235, 59, 0.3) 32%, rgba(255, 235, 59, 0.3) 38%, transparent 40%),
+                linear-gradient(-45deg, transparent 60%, rgba(33, 150, 243, 0.3) 62%, rgba(33, 150, 243, 0.3) 68%, transparent 70%),
+                linear-gradient(-135deg, transparent 20%, rgba(233, 30, 99, 0.2) 22%, rgba(233, 30, 99, 0.2) 28%, transparent 30%);
+            background-size: 200px 150px, 180px 120px, 160px 140px, 220px 100px;
+            background-position: 0px 0px, 100px 50px, 200px 100px, -50px 150px;
+            animation: floatNoodles 20s ease-in-out infinite;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        @keyframes floatNoodles {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-20px) rotate(2deg); }
+            50% { transform: translateY(-10px) rotate(-1deg); }
+            75% { transform: translateY(-30px) rotate(3deg); }
+        }
+
+        /* Cookie sticker decorations that float */
+        .cookie-decoration {
+            position: fixed;
+            pointer-events: none;
+            z-index: -1;
+            animation: floatCookie 15s ease-in-out infinite;
+        }
+
+        .cookie-decoration.large {
+            width: 80px;
+            height: 80px;
+            opacity: 0.6;
+        }
+
+        .cookie-decoration.medium {
+            width: 50px;
+            height: 50px;
+            opacity: 0.5;
+        }
+
+        .cookie-decoration.small {
+            width: 25px;
+            height: 25px;
+            opacity: 0.4;
+        }
+
+        .cookie-decoration::before {
+            content: '';
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #ff1744, #2196f3);
+            border-radius: 50%;
+            display: block;
+            position: relative;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .cookie-decoration.yellow::before {
+            background: radial-gradient(circle, #ffeb3b, #ff9800);
+        }
+
+        .cookie-decoration.blue::before {
+            background: radial-gradient(circle, #2196f3, #3f51b5);
+        }
+
+        .cookie-decoration.red::before {
+            background: radial-gradient(circle, #ff1744, #e91e63);
+        }
+
+        .cookie-decoration::after {
+            content: '';
+            position: absolute;
+            width: 20%;
+            height: 20%;
+            background: #ffeb3b;
+            border-radius: 50%;
+            top: 25%;
+            left: 30%;
+            box-shadow: 
+                40% 20% 0 -5% #ff1744,
+                -10% 60% 0 -3% #2196f3,
+                50% 80% 0 -8% #ffeb3b,
+                80% 30% 0 -5% #e91e63;
+        }
+
+        @keyframes floatCookie {
+            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+            25% { transform: translateY(-15px) rotate(90deg) scale(1.1); }
+            50% { transform: translateY(-25px) rotate(180deg) scale(0.9); }
+            75% { transform: translateY(-10px) rotate(270deg) scale(1.05); }
+        }
+
+        /* RGB Sticker decorations */
+        .rgb-sticker {
+            position: fixed;
+            pointer-events: none;
+            z-index: -1;
+            animation: floatSticker 12s ease-in-out infinite;
+        }
+
+        .rgb-sticker.star {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #ff1744, #ffeb3b, #2196f3);
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+
+        .rgb-sticker.circle {
+            width: 35px;
+            height: 35px;
+            background: radial-gradient(circle, #2196f3, #ff1744, #ffeb3b);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .rgb-sticker.triangle {
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 35px solid;
+            border-image: linear-gradient(45deg, #ffeb3b, #ff1744, #2196f3) 1;
+        }
+
+        .rgb-sticker.diamond {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(45deg, #e91e63, #ffeb3b, #3f51b5);
+            transform: rotate(45deg);
+            border-radius: 5px;
+        }
+
+        @keyframes floatSticker {
+            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+            33% { transform: translateY(-10px) rotate(120deg) scale(1.1); }
+            66% { transform: translateY(-15px) rotate(240deg) scale(0.9); }
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            position: relative;
+        }
+
+        /* Enhanced container for aesthetic dashboards */
+        body.aesthetic-dashboard .container {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px 0 rgba(255, 23, 68, 0.4);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Firebase Status Indicator */
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .firebase-status.connected {
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+        }
+
+        .firebase-status.disconnected {
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+        }
+
+        .firebase-status.connecting {
+            background: rgba(255, 193, 7, 0.8);
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Enhanced logo for aesthetic dashboards */
+        body.aesthetic-dashboard .logo {
+            background: linear-gradient(45deg, #ff1744, #ffeb3b, #2196f3, #e91e63);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            font-size: 32px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .toggle-btn.active {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            transform: translateY(-1px);
+        }
+
+        /* Enhanced toggle buttons for aesthetic dashboards */
+        body.aesthetic-dashboard .toggle-btn.active {
+            background: linear-gradient(135deg, #ff1744, #2196f3);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(255, 23, 68, 0.4);
+        }
+
+        /* Status */
+        .status-bar {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Forms */
+        .form-section {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .form-container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .form-input:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.8);
+            background: white;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #2196f3, #ff1744);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ffeb3b, #ff1744);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+            width: auto;
+            margin: 0 0 0 10px;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.2);
+            margin-top: 20px;
+        }
+
+        /* Customer Interface */
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .cookie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .cookie-card {
+            background: linear-gradient(135deg, #ffeb3b, #ff9800);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(255, 235, 59, 0.2);
+        }
+
+        .cookie-card:focus-within {
+            border-color: rgba(255, 23, 68, 0.8);
+            background: linear-gradient(135deg, #ff1744, #2196f3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 23, 68, 0.3);
+        }
+
+        .cookie-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3);
+        }
+
+        .cookie-visual {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            position: relative;
+            background: radial-gradient(circle, #ff1744, #2196f3);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .cookie-visual.milk-chocolate {
+            background: radial-gradient(circle, #ffeb3b, #ff1744);
+        }
+
+        .cookie-visual.double-chocolate {
+            background: radial-gradient(circle, #2196f3, #e91e63);
+        }
+
+        .cookie-visual.original {
+            background: radial-gradient(circle, #ff9800, #ffeb3b);
+        }
+
+        .cookie-visual::before {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ffeb3b;
+            border-radius: 50%;
+            top: 20%;
+            left: 25%;
+            box-shadow: 
+                20px 10px 0 -2px #ff1744,
+                -5px 25px 0 -1px #2196f3,
+                25px 35px 0 -3px #ffeb3b,
+                35px 15px 0 -2px #ff1744,
+                10px 45px 0 -1px #2196f3;
+        }
+
+        .cookie-visual.milk-chocolate::before {
+            background: #2196f3;
+            box-shadow: 
+                20px 10px 0 -2px #ffeb3b,
+                -5px 25px 0 -1px #ff1744,
+                25px 35px 0 -3px #2196f3,
+                35px 15px 0 -2px #ffeb3b,
+                10px 45px 0 -1px #e91e63;
+        }
+
+        .cookie-visual.double-chocolate::before {
+            background: #ff1744;
+            box-shadow: 
+                20px 10px 0 -2px #ffeb3b,
+                -5px 25px 0 -1px #2196f3,
+                25px 35px 0 -3px #ff1744,
+                35px 15px 0 -2px #e91e63,
+                10px 45px 0 -1px #ff9800;
+        }
+
+        .cookie-visual.original::before {
+            background: #ff1744;
+            box-shadow: 
+                20px 10px 0 -2px #2196f3,
+                -5px 25px 0 -1px #ffeb3b,
+                25px 35px 0 -3px #ff1744,
+                35px 15px 0 -2px #2196f3,
+                10px 45px 0 -1px #ff9800;
+        }
+
+        .cookie-visual::after {
+            content: '✨';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 16px;
+            animation: sparkle 2s infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .topping-option {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #2196f3, #ffeb3b);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+        }
+
+        .topping-option:hover {
+            background: linear-gradient(135deg, #ff1744, #2196f3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 23, 68, 0.3);
+        }
+
+        .topping-option.selected {
+            background: linear-gradient(135deg, #ffeb3b, #ff1744);
+            border-color: #2196f3;
+            transform: translateY(-2px);
+        }
+
+        .topping-visual {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: radial-gradient(circle, #ffeb3b, #ff1744);
+            position: relative;
+            box-shadow: 0 3px 8px rgba(255, 235, 59, 0.3);
+        }
+
+        .topping-visual::before {
+            content: '🧈';
+            font-size: 20px;
+        }
+
+        .topping-visual::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #fff;
+            border-radius: 50%;
+            top: 15%;
+            left: 20%;
+            box-shadow: 
+                15px 5px 0 -1px rgba(255,255,255,0.8),
+                -2px 15px 0 0px rgba(255,255,255,0.6),
+                12px 20px 0 -1px rgba(255,255,255,0.7);
+        }
+
+        .cookie-label {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .cookie-input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .topping-option {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .topping-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .topping-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .price-display {
+            background: linear-gradient(135deg, rgba(255, 235, 59, 0.4), rgba(255, 23, 68, 0.3));
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 28px;
+            border: 2px solid rgba(33, 150, 243, 0.6);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            color: #333;
+        }
+
+        /* Bulk Parser */
+        .bulk-section {
+            background: rgba(33, 150, 243, 0.25);
+            border: 2px solid rgba(33, 150, 243, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .bulk-title {
+            margin: 0 0 15px 0;
+            color: #e3f2fd;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .bulk-textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .bulk-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-parse {
+            background: linear-gradient(135deg, #2196f3, #ffeb3b);
+            flex: 1;
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #ff1744, #ff9800);
+            width: auto;
+        }
+
+        .parse-result {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .parse-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .parse-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #ffeb3b;
+        }
+
+        .parse-details {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .parse-totals {
+            background: rgba(255, 235, 59, 0.3);
+            border: 1px solid rgba(255, 235, 59, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        /* Owner Dashboard */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        /* Enhanced stat cards for aesthetic dashboards */
+        body.aesthetic-dashboard .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px rgba(33, 150, 243, 0.3);
+        }
+
+        body.aesthetic-dashboard .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(255, 23, 68, 0.4);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        /* Enhanced stat values for aesthetic dashboards */
+        body.aesthetic-dashboard .stat-value {
+            background: linear-gradient(45deg, #ff1744, #ffeb3b, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 28px;
+        }
+
+        .cookie-totals {
+            background: rgba(255, 235, 59, 0.25);
+            border: 2px solid rgba(255, 235, 59, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        /* Enhanced cookie totals for aesthetic dashboards */
+        body.aesthetic-dashboard .cookie-totals {
+            background: linear-gradient(135deg, rgba(255, 235, 59, 0.4), rgba(255, 23, 68, 0.3));
+            border: 2px solid rgba(33, 150, 243, 0.6);
+            box-shadow: 0 8px 32px rgba(255, 23, 68, 0.2);
+        }
+
+        .totals-title {
+            margin: 0 0 20px 0;
+            color: #ffeb3b;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Enhanced totals title for aesthetic dashboards */
+        body.aesthetic-dashboard .totals-title {
+            background: linear-gradient(45deg, #ff1744, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .total-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        /* Enhanced total items for aesthetic dashboards */
+        body.aesthetic-dashboard .total-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .total-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .total-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        /* Enhanced total values for aesthetic dashboards */
+        body.aesthetic-dashboard .total-value {
+            background: linear-gradient(45deg, #2196f3, #ff1744);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 22px;
+        }
+
+        /* Stock Management */
+        .stock-section {
+            background: rgba(156, 39, 176, 0.25);
+            border: 2px solid rgba(156, 39, 176, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        /* Enhanced stock section for aesthetic dashboards */
+        body.aesthetic-dashboard .stock-section {
+            background: linear-gradient(135deg, rgba(156, 39, 176, 0.4), rgba(233, 30, 99, 0.3));
+            border: 2px solid rgba(156, 39, 176, 0.6);
+            box-shadow: 0 8px 32px rgba(156, 39, 176, 0.2);
+        }
+
+        .stock-title {
+            margin: 0 0 20px 0;
+            color: #e1bee7;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Enhanced stock title for aesthetic dashboards */
+        body.aesthetic-dashboard .stock-title {
+            background: linear-gradient(45deg, #e91e63, #9c27b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stock-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        /* Enhanced stock items for aesthetic dashboards */
+        body.aesthetic-dashboard .stock-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stock-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #e1bee7;
+        }
+
+        .stock-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .stock-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .btn-stock {
+            background: linear-gradient(135deg, #9c27b0, #e91e63);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-stock:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4);
+        }
+
+        .stock-display {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffeb3b;
+        }
+
+        /* Enhanced stock display for aesthetic dashboards */
+        body.aesthetic-dashboard .stock-display {
+            background: linear-gradient(45deg, #ffeb3b, #ff1744);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stock-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Cookie Stock Display for Customer */
+        .cookie-stock {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        .stock-low {
+            color: #ff5722;
+            font-weight: 600;
+        }
+
+        .stock-out {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .stock-normal {
+            color: #4caf50;
+        }
+
+        /* Customer Stock Dashboard */
+        .customer-stock-dashboard {
+            background: rgba(33, 150, 243, 0.15);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        /* Enhanced customer stock dashboard for aesthetic dashboards */
+        body.aesthetic-dashboard .customer-stock-dashboard {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.25), rgba(255, 23, 68, 0.15));
+            border: 2px solid rgba(33, 150, 243, 0.4);
+            box-shadow: 0 6px 25px rgba(33, 150, 243, 0.2);
+        }
+
+        .stock-dashboard-title {
+            margin: 0 0 15px 0;
+            color: #e3f2fd;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Enhanced stock dashboard title for aesthetic dashboards */
+        body.aesthetic-dashboard .stock-dashboard-title {
+            background: linear-gradient(45deg, #2196f3, #ff1744);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .stock-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .stock-dashboard-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        /* Enhanced stock dashboard items for aesthetic dashboards */
+        body.aesthetic-dashboard .stock-dashboard-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stock-dashboard-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .stock-dashboard-visual {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 8px;
+            border-radius: 50%;
+            position: relative;
+            background: radial-gradient(circle, #ff1744, #2196f3);
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .stock-dashboard-visual.milk-chocolate {
+            background: radial-gradient(circle, #ffeb3b, #ff1744);
+        }
+
+        .stock-dashboard-visual.double-chocolate {
+            background: radial-gradient(circle, #2196f3, #e91e63);
+        }
+
+        .stock-dashboard-visual.original {
+            background: radial-gradient(circle, #ff9800, #ffeb3b);
+        }
+
+        .stock-dashboard-visual::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #ffeb3b;
+            border-radius: 50%;
+            top: 20%;
+            left: 25%;
+            box-shadow: 
+                12px 6px 0 -1px #ff1744,
+                -2px 15px 0 -1px #2196f3,
+                15px 20px 0 -2px #ffeb3b,
+                20px 8px 0 -1px #ff1744;
+        }
+
+        .stock-dashboard-label {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .stock-dashboard-count {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffeb3b;
+            transition: all 0.3s ease;
+        }
+
+        /* Enhanced stock dashboard count for aesthetic dashboards */
+        body.aesthetic-dashboard .stock-dashboard-count {
+            background: linear-gradient(45deg, #ffeb3b, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 22px;
+        }
+
+        .stock-dashboard-count.low-stock {
+            color: #ff9800 !important;
+            animation: pulse 2s infinite;
+        }
+
+        /* Override gradient for low stock in aesthetic dashboard */
+        body.aesthetic-dashboard .stock-dashboard-count.low-stock {
+            background: #ff9800 !important;
+            -webkit-background-clip: unset !important;
+            -webkit-text-fill-color: unset !important;
+            background-clip: unset !important;
+            color: #ff9800 !important;
+        }
+
+        .stock-dashboard-count.out-of-stock {
+            color: #f44336 !important;
+            animation: pulse 2s infinite;
+        }
+
+        /* Override gradient for out of stock in aesthetic dashboard */
+        body.aesthetic-dashboard .stock-dashboard-count.out-of-stock {
+            background: #f44336 !important;
+            -webkit-background-clip: unset !important;
+            -webkit-text-fill-color: unset !important;
+            background-clip: unset !important;
+            color: #f44336 !important;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Customer Points Dashboard */
+        .points-dashboard {
+            background: rgba(255, 152, 0, 0.15);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        /* Enhanced points dashboard for aesthetic dashboards */
+        body.aesthetic-dashboard .points-dashboard {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.25), rgba(255, 193, 7, 0.15));
+            border: 2px solid rgba(255, 152, 0, 0.4);
+            box-shadow: 0 6px 25px rgba(255, 152, 0, 0.2);
+        }
+
+        .points-title {
+            margin: 0 0 15px 0;
+            color: #ffcc02;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Enhanced points title for aesthetic dashboards */
+        body.aesthetic-dashboard .points-title {
+            background: linear-gradient(45deg, #ff9800, #ffeb3b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .points-content {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .points-display {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .points-icon {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #ffeb3b, #ff9800);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #333;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+            animation: starGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes starGlow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3); }
+            50% { box-shadow: 0 6px 20px rgba(255, 235, 59, 0.5), 0 0 30px rgba(255, 235, 59, 0.2); }
+        }
+
+        .points-info {
+            text-align: left;
+        }
+
+        .points-current {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffeb3b;
+            line-height: 1;
+        }
+
+        /* Enhanced points current for aesthetic dashboards */
+        body.aesthetic-dashboard .points-current {
+            background: linear-gradient(45deg, #ffeb3b, #ff9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 32px;
+        }
+
+        .points-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .points-redemption {
+            text-align: center;
+        }
+
+        .points-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .points-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9800, #ffeb3b);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .points-status {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffcc02;
+            margin-bottom: 10px;
+        }
+
+        /* Enhanced points status for aesthetic dashboards */
+        body.aesthetic-dashboard .points-status {
+            background: linear-gradient(45deg, #ffeb3b, #ff5722);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn-redeem {
+            background: linear-gradient(135deg, #ff9800, #ffeb3b);
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-redeem:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn-redeem:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-redeem.can-redeem {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .points-info-text {
+            font-size: 12px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            .points-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 15px;
+            }
+        }
+
+        /* Orders List */
+        .orders-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .orders-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .order-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .order-card:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Enhanced order cards for aesthetic dashboards */
+        body.aesthetic-dashboard .order-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(33, 150, 243, 0.2);
+        }
+
+        body.aesthetic-dashboard .order-card:hover {
+            transform: translateX(8px) translateY(-2px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
+            box-shadow: 0 8px 32px rgba(255, 23, 68, 0.3);
+        }
+
+        .order-card.delivered {
+            background: rgba(76, 175, 80, 0.25);
+            border-left-color: #4caf50;
+        }
+
+        .order-card.payment-received {
+            background: rgba(76, 175, 80, 0.4);
+            border: 2px solid rgba(76, 175, 80, 0.6);
+        }
+
+        .order-info {
+            flex-grow: 1;
+        }
+
+        .customer-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .order-detail {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 3px;
+        }
+
+        .buyer-id {
+            font-size: 12px;
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+
+        .order-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffeb3b;
+            margin-right: 15px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* Enhanced order price for aesthetic dashboards */
+        body.aesthetic-dashboard .order-price {
+            background: linear-gradient(45deg, #ff1744, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 22px;
+            text-shadow: none;
+        }
+
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delivered {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            color: white;
+        }
+
+        .btn-paid {
+            background: linear-gradient(135deg, #2196f3, #64b5f6);
+            color: white;
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #ff1744, #ef5350);
+            color: white;
+        }
+
+        .btn-undo {
+            background: linear-gradient(135deg, #ff9800, #ffb74d);
+            color: white;
+            font-size: 10px;
+            padding: 4px 8px;
+        }
+
+        /* Success Screen */
+        .success-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-message {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .order-summary {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        /* Info Sections */
+        .info-section {
+            background: rgba(33, 150, 243, 0.25);
+            border: 1px solid rgba(33, 150, 243, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .business-id-display {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            border-radius: 10px;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+            font-weight: 500;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: rgba(76, 175, 80, 0.95);
+        }
+
+        .notification.error {
+            background: rgba(244, 67, 54, 0.95);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .cookie-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .order-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .orders-header {
+                flex-direction: column;
+            }
+
+            .cookie-decoration, .rgb-sticker {
+                display: none;
+            }
+
+            .firebase-status {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1>🍿 Buyer Order System</h1>  <!-- Buyer ID input -->  <input type="text" id="buyerIdInput" placeholder="Enter Buyer ID (or leave blank)">  <!-- Order inputs -->  <input type="text" id="itemInput" placeholder="Item">
-  <input type="number" id="qtyInput" placeholder="Qty">  <!-- Buttons --><button id="orderBtn">Place Order</button> <button id="dashboardBtn">Load My Orders</button> <button id="ownerBtn">Owner View (All Buyers)</button>
+    <!-- Firebase Status Indicator -->
+    <div id="firebaseStatus" class="firebase-status connecting">Firebase: Connecting...</div>
 
-  <h2>📋 Orders</h2>
-  <ul id="ordersList"></ul>  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">Cookie Orders System</div>
+        <div class="mode-toggle">
+            <button class="toggle-btn active" id="customerBtn">Customer</button>
+            <button class="toggle-btn" id="ownerBtn">Owner</button>
+        </div>
+    </div>
 
-    // 🔑 Replace with your Firebase config
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
+    <!-- Status Bar -->
+    <div id="statusBar" class="status-bar">
+        Firebase Cloud Storage: Real-time sync enabled
+    </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    <!-- Business Setup -->
+    <div id="businessSetup" class="form-section">
+        <div class="container">
+            <h2>Create Your Buyer ID</h2>
+            <div class="form-container">
+                <p style="margin-bottom: 20px; opacity: 0.9;">Create your unique Buyer ID to start ordering cookies</p>
+                <div style="display: flex; align-items: center;">
+                    <input type="text" id="businessIdInput" class="form-input" placeholder="Enter Buyer ID (e.g., BUYER-2024)">
+                    <button class="btn btn-small" id="generateIdBtn">Random</button>
+                </div>
+                <small style="opacity: 0.8;">Orders are synced to Firebase cloud database</small>
+                <button class="btn" id="setupBusinessBtn">Start Ordering</button>
+            </div>
+        </div>
+    </div>
 
-    // 📌 Place Order (buyer or defaultBuyer)
-    async function placeOrder(orderData, buyerIdInput) {
-      const buyerId = buyerIdInput && buyerIdInput.trim() !== "" ? buyerIdInput.trim() : "defaultBuyer";
-      await addDoc(collection(db, "buyers", buyerId, "orders"), orderData);
-      alert(✅ Order placed under ${buyerId});
-    }
+    <!-- Owner Login -->
+    <div id="ownerLogin" class="form-section hidden">
+        <div class="container">
+            <h2>Owner Access</h2>
+            <div class="form-container">
+                <p style="margin-bottom: 20px; opacity: 0.9;">Enter owner credentials to access dashboard</p>
+                <input type="text" id="ownerBusinessId" class="form-input" placeholder="Business ID">
+                <input type="password" id="ownerPassword" class="form-input" placeholder="Password">
+                <button class="btn btn-secondary" id="ownerLoginBtn">Access Dashboard</button>
+                <button class="btn btn-back" id="backToCustomerBtn">Back to Customer</button>
+            </div>
+        </div>
+    </div>
 
-    // 📌 Listen Orders in Real Time for one buyer
-    function listenOrders(buyerIdInput) {
-      const buyerId = buyerIdInput && buyerIdInput.trim() !== "" ? buyerIdInput.trim() : "defaultBuyer";
-      const q = query(collection(db, "buyers", buyerId, "orders"), orderBy("time", "desc"));
+    <!-- Business Info -->
+    <div id="businessInfo" class="info-section hidden">
+        <div class="info-title">Firebase Cloud Storage Active</div>
+        <p style="margin-bottom: 10px;"><strong>Buyer ID:</strong> <span class="business-id-display" id="buyerId"></span></p>
+        <p style="font-size: 14px; opacity: 0.9; margin: 0;">Your orders are synced to the cloud in real-time</p>
+    </div>
 
-      onSnapshot(q, (snapshot) => {
-        const ordersList = document.getElementById("ordersList");
-        ordersList.innerHTML = ""; 
-        snapshot.forEach((doc) => {
-          const li = document.createElement("li");
-          const data = doc.data();
-          li.textContent = Buyer: ${buyerId} | Item: ${data.item} | Qty: ${data.qty} | Time: ${new Date(data.time).toLocaleString()};
-          ordersList.appendChild(li);
-        });
-      });
-    }
+    <!-- Owner Business Info -->
+    <div id="ownerBusinessInfo" class="info-section hidden" style="background: rgba(233, 30, 99, 0.25); border-color: rgba(233, 30, 99, 0.5);">
+        <div class="info-title">Owner Dashboard Active</div>
+        <p style="margin-bottom: 10px;"><strong>Business ID:</strong> <span class="business-id-display" id="ownerBusinessIdDisplay"></span></p>
+        <p style="font-size: 14px; opacity: 0.9; margin: 0;">All orders from Firebase cloud database are visible here</p>
+    </div>
 
-    // 📌 Real-time Owner View: Show all buyers and their orders
-    function listenAllOrders() {
-      const ordersList = document.getElementById("ordersList");
-      ordersList.innerHTML = "";
+    <!-- Customer Interface -->
+    <div id="customerInterface" class="hidden">
+        <div class="container">
+            <h1>Place Your Cookie Order</h1>
+            
+            <!-- Firebase Debug Panel -->
+            <div class="info-section" style="background: rgba(255, 152, 0, 0.15); border-color: rgba(255, 152, 0, 0.3);">
+                <div class="info-title">Firebase Debug Info</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-small" onclick="forceRefreshFromFirebase()" style="margin: 0;">Refresh Data</button>
+                    <button class="btn btn-small" onclick="debugFirebaseData()" style="margin: 0; background: linear-gradient(135deg, #9c27b0, #e91e63);">Debug Log</button>
+                    <span id="debugInfo" style="font-size: 12px; opacity: 0.8;"></span>
+                </div>
+            </div>
+            
+            <!-- Current Stock Dashboard -->
+            <div class="customer-stock-dashboard">
+                <h3 class="stock-dashboard-title">Current Stock Levels</h3>
+                <div class="stock-dashboard-grid">
+                    <div class="stock-dashboard-item">
+                        <div class="stock-dashboard-visual milk-chocolate"></div>
+                        <div class="stock-dashboard-label">Milk Chocolate</div>
+                        <div class="stock-dashboard-count" id="customerMcStock">50</div>
+                    </div>
+                    <div class="stock-dashboard-item">
+                        <div class="stock-dashboard-visual double-chocolate"></div>
+                        <div class="stock-dashboard-label">Double Chocolate</div>
+                        <div class="stock-dashboard-count" id="customerDcStock">50</div>
+                    </div>
+                    <div class="stock-dashboard-item">
+                        <div class="stock-dashboard-visual original"></div>
+                        <div class="stock-dashboard-label">Original</div>
+                        <div class="stock-dashboard-count" id="customerOrStock">50</div>
+                    </div>
+                </div>
+            </div>
 
-      // Listen to all buyers collection
-      onSnapshot(collection(db, "buyers"), (buyersSnapshot) => {
-        ordersList.innerHTML = "";
-        buyersSnapshot.forEach((buyerDoc) => {
-          const buyerId = buyerDoc.id;
+            <!-- Customer Points Dashboard -->
+            <div class="points-dashboard">
+                <h3 class="points-title">Your Reward Points</h3>
+                <div class="points-content">
+                    <div class="points-display">
+                        <div class="points-icon">★</div>
+                        <div class="points-info">
+                            <div class="points-current" id="customerPoints">0</div>
+                            <div class="points-label">Current Points</div>
+                        </div>
+                    </div>
+                    <div class="points-redemption">
+                        <div class="points-progress">
+                            <div class="points-progress-bar" id="pointsProgress"></div>
+                        </div>
+                        <div class="points-status" id="pointsStatus">16 more points for free bundle</div>
+                        <button class="btn-redeem" id="redeemBtn" disabled>Redeem Free Bundle (20 pts)</button>
+                    </div>
+                </div>
+                <div class="points-info-text">Earn 2 points per order • 20 points = 1 free cookie bundle</div>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Your Name:</label>
+                <input type="text" id="customerName" class="form-input" placeholder="Enter your name">
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Room Number:</label>
+                <input type="text" id="customerRoom" class="form-input" placeholder="e.g., C001, C324">
+            </div>
 
-          // Listen for each buyer's orders
-          const q = query(collection(db, "buyers", buyerId, "orders"), orderBy("time", "desc"));
-          onSnapshot(q, (ordersSnapshot) => {
-            ordersSnapshot.forEach((orderDoc) => {
-              const li = document.createElement("li");
-              const data = orderDoc.data();
-              li.textContent = Buyer: ${buyerId} | Item: ${data.item} | Qty: ${data.qty} | Time: ${new Date(data.time).toLocaleString()};
-              ordersList.appendChild(li);
+            <!-- Bulk Order Parser -->
+            <div class="bulk-section">
+                <h3 class="bulk-title">Bulk Order Parser</h3>
+                <div class="input-group">
+                    <label class="input-label">Paste Bulk Order Text:</label>
+                    <textarea id="bulkOrderText" class="bulk-textarea" placeholder="Paste your bulk order here... Examples:&#10;John C001 MC:2 DC:1 OR:3 WC&#10;Mary C-102 mC 2, dc1, or:3&#10;Ali C0-01 C000:2 c1-000:1"></textarea>
+                </div>
+                <div class="bulk-buttons">
+                    <button class="btn btn-parse" id="parseBulkBtn">Parse & Calculate</button>
+                    <button class="btn btn-clear" id="clearBulkBtn">Clear</button>
+                </div>
+                <div id="bulkParseResult" class="parse-result hidden">
+                    <h4 style="margin-top: 0; color: #c8e6c9;">Parsed Results:</h4>
+                    <div id="bulkParseDetails"></div>
+                    <button class="btn" id="useBulkBtn" style="margin-top: 15px;">Use This Order</button>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Select Cookie Types & Quantities:</label>
+                
+                <!-- Pricing Guide -->
+                <div style="background: rgba(255, 235, 59, 0.15); border: 1px solid rgba(255, 235, 59, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #ffeb3b;">Bundle Pricing Guide:</div>
+                    <div style="font-size: 13px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
+                        <div>1 cookie: RM2.00</div>
+                        <div>2 cookies: RM3.00</div>
+                        <div>3 cookies: RM5.00</div>
+                        <div>4 cookies: RM6.00</div>
+                        <div>5 cookies: RM8.00</div>
+                        <div>6 cookies: RM9.00</div>
+                        <div>7 cookies: RM11.00</div>
+                        <div>8 cookies: RM12.00</div>
+                        <div>9 cookies: RM14.00</div>
+                        <div>10 cookies: RM15.00</div>
+                        <div>20 cookies: RM30.00</div>
+                        <div>22 cookies: RM33.00</div>
+                    </div>
+                    <div style="font-size: 12px; margin-top: 8px; opacity: 0.8;">
+                        Pattern continues: Odd quantities +RM2, Even quantities +RM1 from previous price
+                    </div>
+                </div>
+                
+                <div class="cookie-grid">
+                    <div class="cookie-card">
+                        <div class="cookie-visual milk-chocolate"></div>
+                        <div class="cookie-label">Milk Chocolate</div>
+                        <div class="cookie-stock" id="mcStockInfo">Available: 50</div>
+                        <input type="number" id="mcQty" class="cookie-input" min="0" max="20" value="0">
+                    </div>
+                    <div class="cookie-card">
+                        <div class="cookie-visual double-chocolate"></div>
+                        <div class="cookie-label">Double Chocolate</div>
+                        <div class="cookie-stock" id="dcStockInfo">Available: 50</div>
+                        <input type="number" id="dcQty" class="cookie-input" min="0" max="20" value="0">
+                    </div>
+                    <div class="cookie-card">
+                        <div class="cookie-visual original"></div>
+                        <div class="cookie-label">Original</div>
+                        <div class="cookie-stock" id="orStockInfo">Available: 50</div>
+                        <input type="number" id="orQty" class="cookie-input" min="0" max="20" value="0">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="topping-option" onclick="toggleTopping()">
+                <div class="topping-visual"></div>
+                <div>
+                    <input type="checkbox" id="wcTopping" class="topping-checkbox" style="display: none;">
+                    <label for="wcTopping" style="font-weight: 600; font-size: 16px; color: #333;">Add WC Topping (+RM1.00)</label>
+                    <div style="font-size: 13px; color: #666; margin-top: 5px;">Creamy butter topping for extra richness</div>
+                </div>
+            </div>
+            
+            <div class="price-display" id="priceDisplay">
+                Total: RM0.00
+            </div>
+            
+            <button class="btn" id="submitBtn" style="font-size: 18px; padding: 20px;">
+                Place Order
+            </button>
+        </div>
+    </div>
+
+    <!-- Order Success -->
+    <div id="orderSuccess" class="success-screen hidden">
+        <div class="container">
+            <div class="success-message">Order Placed Successfully!</div>
+            <p>Your order has been received and synced to the cloud database.</p>
+            <div id="orderSummary" class="order-summary"></div>
+            <button class="btn" id="anotherOrderBtn">Place Another Order</button>
+        </div>
+    </div>
+
+    <!-- Owner Dashboard -->
+    <div id="ownerDashboard" class="hidden">
+        <div class="container">
+            <h1>Owner Dashboard</h1>
+            
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value" id="totalOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value">RM<span id="totalRevenue">0.00</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending Orders</div>
+                    <div class="stat-value" id="pendingOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed Orders</div>
+                    <div class="stat-value" id="completedOrders">0</div>
+                </div>
+            </div>
+
+            <!-- Cookie Totals -->
+            <div class="cookie-totals">
+                <h3 class="totals-title">Cookie Order Totals</h3>
+                <div class="totals-grid">
+                    <div class="total-item">
+                        <div class="total-label">Milk Chocolate</div>
+                        <div class="total-value" id="totalMC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Double Chocolate</div>
+                        <div class="total-value" id="totalDC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Original</div>
+                        <div class="total-value" id="totalOR">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">WC Toppings</div>
+                        <div class="total-value" id="totalWC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Total Pieces</div>
+                        <div class="total-value" id="totalPieces">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Buyer Section -->
+            <div class="info-section">
+                <h3 class="info-title">Create New Buyer ID</h3>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="newBuyerIdInput" class="form-input" placeholder="Enter new Buyer ID" style="flex-grow: 1; min-width: 200px; margin: 0;">
+                    <button class="btn" id="createBuyerBtn" style="width: auto; margin: 0;">Create</button>
+                    <button class="btn btn-small" id="generateBuyerIdBtn">Random</button>
+                </div>
+                <small style="opacity: 0.8; display: block; margin-top: 10px;">Create buyer IDs for customers</small>
+            </div>
+
+            <!-- Stock Management Section -->
+            <div class="stock-section">
+                <h3 class="stock-title">Cookie Stock Management</h3>
+                <div class="stock-grid">
+                    <div class="stock-item">
+                        <div class="stock-label">Milk Chocolate</div>
+                        <div class="stock-controls">
+                            <input type="number" id="mcStock" class="stock-input" min="0" max="500" value="50">
+                            <button class="btn-stock" onclick="updateStock('mc')">Update</button>
+                        </div>
+                        <div class="stock-display">Available: <span id="mcStockDisplay">50</span></div>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-label">Double Chocolate</div>
+                        <div class="stock-controls">
+                            <input type="number" id="dcStock" class="stock-input" min="0" max="500" value="50">
+                            <button class="btn-stock" onclick="updateStock('dc')">Update</button>
+                        </div>
+                        <div class="stock-display">Available: <span id="dcStockDisplay">50</span></div>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-label">Original</div>
+                        <div class="stock-controls">
+                            <input type="number" id="orStock" class="stock-input" min="0" max="500" value="50">
+                            <button class="btn-stock" onclick="updateStock('or')">Update</button>
+                        </div>
+                        <div class="stock-display">Available: <span id="orStockDisplay">50</span></div>
+                    </div>
+                </div>
+                <div class="stock-actions">
+                    <button class="btn" id="resetStockBtn" onclick="resetAllStock()" style="width: auto; background: linear-gradient(135deg, #ff9800, #ffb74d);">Reset All Stock</button>
+                    <button class="btn" id="addStockBtn" onclick="addStockToAll()" style="width: auto; background: linear-gradient(135deg, #4caf50, #66bb6a);">Add 50 to All</button>
+                </div>
+            </div>
+            
+            <!-- Orders List -->
+            <div class="orders-header">
+                <h3>All Orders</h3>
+                <div class="orders-actions">
+                    <button class="btn" id="refreshBtn" style="width: auto;">Refresh</button>
+                    <button class="btn" id="exportBtn" style="width: auto; background: linear-gradient(135deg, #ff9800, #ffb74d);">Export</button>
+                    <button class="btn" id="logoutOwnerBtn" style="width: auto; background: linear-gradient(135deg, #e91e63, #ba68c8);">Logout</button>
+                </div>
+            </div>
+            
+            <div id="orderList">
+                <!-- Orders will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCK4S7PbNkW5iWCg4psDYhmTKs4TNWIA8w",
+            authDomain: "cookies-order.firebaseapp.com",
+            databaseURL: "https://cookies-order-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "cookies-order",
+            storageBucket: "cookies-order.firebasestorage.app",
+            messagingSenderId: "395834958915",
+            appId: "1:395834958915:web:e4a24041a11bb2be20e0f6",
+            measurementId: "G-VVF73QRGKB"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Global variables
+        let orders = [];
+        let currentView = 'setup';
+        let BUYER_ID = '';
+        let isOwner = false;
+        let parsedBulkOrders = null;
+        let parsedBulkTotal = 0;
+        let firebaseConnected = false;
+        
+        // Stock management
+        let cookieStock = {
+            mc: 50, // Milk Chocolate
+            dc: 50, // Double Chocolate  
+            or: 50  // Original
+        };
+        
+        // Points system - stored by buyer ID
+        let customerPoints = {};
+        
+        const MAIN_BUSINESS_ID = 'khawarizmi-100499';
+        const OWNER_PASSWORD = 'khawarizmi-100499';
+        
+        // Bundle pricing structure
+        const PRICING = {
+            1: 2.00,   // 1 cookie = RM2.00
+            2: 3.00,   // 2 cookies = RM3.00
+            3: 5.00,   // 3 cookies = RM5.00
+            4: 6.00,   // 4 cookies = RM6.00
+            5: 8.00,   // 5 cookies = RM8.00
+            6: 9.00,   // 6 cookies = RM9.00
+            7: 11.00,  // 7 cookies = RM11.00
+            8: 12.00,  // 8 cookies = RM12.00
+            9: 14.00,  // 9 cookies = RM14.00
+            10: 15.00, // 10 cookies = RM15.00
+            11: 17.00, // 11 cookies = RM17.00
+            12: 18.00, // 12 cookies = RM18.00
+            13: 20.00, // 13 cookies = RM20.00
+            14: 21.00, // 14 cookies = RM21.00
+            15: 23.00, // 15 cookies = RM23.00
+            16: 24.00, // 16 cookies = RM24.00
+            17: 26.00, // 17 cookies = RM26.00
+            18: 27.00, // 18 cookies = RM27.00
+            19: 29.00, // 19 cookies = RM29.00
+            20: 30.00, // 20 cookies = RM30.00
+            21: 32.00, // 21 cookies = RM32.00
+            22: 33.00  // 22 cookies = RM33.00
+        };
+        
+        // Function to calculate price for any quantity following the pattern
+        function calculateBundlePrice(quantity) {
+            if (quantity <= 0) return 0;
+            
+            // If we have exact pricing, use it
+            if (PRICING[quantity]) {
+                return PRICING[quantity];
+            }
+            
+            // For quantities beyond our table, follow the pattern
+            // Pattern: odd quantities = base + 2, even quantities = base + 1
+            // Base increases by 2 every 2 cookies after cookie 6
+            if (quantity > 22) {
+                const basePrice = PRICING[22]; // RM33.00
+                const extraCookies = quantity - 22;
+                const extraSets = Math.floor(extraCookies / 2);
+                const remainder = extraCookies % 2;
+                
+                // Each set of 2 cookies adds RM3 (following pattern: +2, +1, +2, +1...)
+                let price = basePrice + (extraSets * 3);
+                
+                // Add for remainder (if odd number of extra cookies, add RM2)
+                if (remainder === 1) {
+                    price += 2;
+                }
+                
+                return price;
+            }
+            
+            return 0;
+        }
+        
+        const TOPPING_PRICE = 1.00;
+
+        // Firebase Functions
+        function updateFirebaseStatus(status) {
+            const statusElement = getElement('firebaseStatus');
+            statusElement.className = `firebase-status ${status}`;
+            
+            switch(status) {
+                case 'connected':
+                    statusElement.textContent = 'Firebase: Connected';
+                    firebaseConnected = true;
+                    break;
+                case 'disconnected':
+                    statusElement.textContent = 'Firebase: Disconnected';
+                    firebaseConnected = false;
+                    break;
+                case 'connecting':
+                    statusElement.textContent = 'Firebase: Connecting...';
+                    firebaseConnected = false;
+                    break;
+            }
+        }
+
+        function initializeFirebase() {
+            updateFirebaseStatus('connecting');
+            
+            // Listen for connection state
+            const connectedRef = database.ref('.info/connected');
+            connectedRef.on('value', (snapshot) => {
+                if (snapshot.val() === true) {
+                    updateFirebaseStatus('connected');
+                    console.log('Firebase connected successfully');
+                    loadDataFromFirebase();
+                } else {
+                    updateFirebaseStatus('disconnected');
+                    console.log('Firebase disconnected');
+                }
             });
-          });
+
+            // Listen for orders changes
+            database.ref('orders').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const firebaseOrders = [];
+                    snapshot.forEach((childSnapshot) => {
+                        firebaseOrders.push(childSnapshot.val());
+                    });
+                    orders = firebaseOrders;
+                    
+                    // Update displays if on owner dashboard
+                    if (currentView === 'owner') {
+                        updateDashboardStats();
+                        renderOrderList();
+                    }
+                }
+            });
+
+            // Listen for stock changes
+            database.ref('stock').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const firebaseStock = snapshot.val();
+                    cookieStock = { ...cookieStock, ...firebaseStock };
+                    updateStockDisplays();
+                }
+            });
+
+            // Listen for customer points changes
+            database.ref('customerPoints').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    customerPoints = snapshot.val();
+                    if (currentView === 'customer' && BUYER_ID) {
+                        updatePointsDisplay();
+                    }
+                }
+            });
+        }
+
+        function loadDataFromFirebase() {
+            if (!firebaseConnected) return;
+            
+            // Load initial stock
+            database.ref('stock').once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    cookieStock = { ...cookieStock, ...snapshot.val() };
+                    updateStockDisplays();
+                } else {
+                    // Initialize stock in Firebase
+                    saveStockToFirebase();
+                }
+            });
+
+            // Load customer points
+            database.ref('customerPoints').once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    customerPoints = snapshot.val();
+                }
+            });
+        }
+
+        function saveOrderToFirebase(order) {
+            if (!firebaseConnected) {
+                console.warn('Firebase not connected, order saved locally only');
+                order.syncedToFirebase = false;
+                return;
+            }
+
+            database.ref('orders/' + order.id).set(order)
+                .then(() => {
+                    console.log('Order saved to Firebase successfully');
+                    order.syncedToFirebase = true;
+                })
+                .catch((error) => {
+                    console.error('Error saving order to Firebase:', error);
+                    showNotification('Error syncing order to cloud', 'error');
+                    order.syncedToFirebase = false;
+                });
+        }
+
+        function updateOrderInFirebase(orderId, updates) {
+            if (!firebaseConnected) return;
+
+            database.ref('orders/' + orderId).update(updates)
+                .then(() => {
+                    console.log('Order updated in Firebase successfully');
+                })
+                .catch((error) => {
+                    console.error('Error updating order in Firebase:', error);
+                });
+        }
+
+        function deleteOrderFromFirebase(orderId) {
+            if (!firebaseConnected) return;
+
+            database.ref('orders/' + orderId).remove()
+                .then(() => {
+                    console.log('Order deleted from Firebase successfully');
+                })
+                .catch((error) => {
+                    console.error('Error deleting order from Firebase:', error);
+                });
+        }
+
+        function saveStockToFirebase() {
+            if (!firebaseConnected) return;
+
+            database.ref('stock').set(cookieStock)
+                .then(() => {
+                    console.log('Stock saved to Firebase successfully');
+                })
+                .catch((error) => {
+                    console.error('Error saving stock to Firebase:', error);
+                });
+        }
+
+        function saveCustomerPointsToFirebase() {
+            if (!firebaseConnected) return;
+
+            database.ref('customerPoints').set(customerPoints)
+                .then(() => {
+                    console.log('Customer points saved to Firebase successfully');
+                })
+                .catch((error) => {
+                    console.error('Error saving customer points to Firebase:', error);
+                });
+        }
+
+        function addPointsSafely(buyerId, points) {
+            if (!firebaseConnected) {
+                // Offline: just add locally
+                if (!customerPoints[buyerId]) {
+                    customerPoints[buyerId] = 0;
+                }
+                customerPoints[buyerId] += points;
+                updatePointsDisplay();
+                return;
+            }
+
+            // Online: use Firebase transaction to prevent conflicts
+            const customerRef = database.ref(`customerPoints/${buyerId}`);
+            customerRef.transaction((currentPoints) => {
+                return (currentPoints || 0) + points;
+            }).then((result) => {
+                if (result.committed) {
+                    console.log('Points added successfully via transaction');
+                    // Update local copy
+                    customerPoints[buyerId] = result.snapshot.val();
+                    updatePointsDisplay();
+                } else {
+                    console.log('Transaction aborted');
+                }
+            }).catch((error) => {
+                console.error('Transaction failed: ', error);
+                // Fallback to local update
+                if (!customerPoints[buyerId]) {
+                    customerPoints[buyerId] = 0;
+                }
+                customerPoints[buyerId] += points;
+                updatePointsDisplay();
+            });
+        }
+
+        function redeemPointsSafely(buyerId, pointsToRedeem) {
+            if (!firebaseConnected) {
+                // Offline: check local points
+                const currentPoints = getCustomerPoints(buyerId);
+                if (currentPoints < pointsToRedeem) {
+                    return false;
+                }
+                customerPoints[buyerId] -= pointsToRedeem;
+                updatePointsDisplay();
+                return true;
+            }
+
+            // Online: use Firebase transaction to prevent conflicts
+            const customerRef = database.ref(`customerPoints/${buyerId}`);
+            return customerRef.transaction((currentPoints) => {
+                const points = currentPoints || 0;
+                if (points >= pointsToRedeem) {
+                    return points - pointsToRedeem;
+                } else {
+                    return; // Abort transaction
+                }
+            }).then((result) => {
+                if (result.committed) {
+                    console.log('Points redeemed successfully via transaction');
+                    // Update local copy
+                    customerPoints[buyerId] = result.snapshot.val();
+                    updatePointsDisplay();
+                    return true;
+                } else {
+                    console.log('Insufficient points for redemption');
+                    return false;
+                }
+            }).catch((error) => {
+                console.error('Redemption transaction failed: ', error);
+                return false;
+            });
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Cookie Orders System with Firebase initializing...');
+            initializeFirebase();
+            initializeApp();
         });
-      });
-    }
 
-    // 🔗 Event listeners
-    document.getElementById("orderBtn").addEventListener("click", () => {
-      const buyerId = document.getElementById("buyerIdInput").value;
-      const order = {
-        item: document.getElementById("itemInput").value,
-        qty: Number(document.getElementById("qtyInput").value),
-        time: new Date().toISOString()
-      };
-      placeOrder(order, buyerId);
-    });
+        function initializeApp() {
+            setupEventListeners();
+            showBusinessSetup();
+            showNotification('Cookie Orders System Ready with Firebase!', 'success');
+        }
 
-    document.getElementById("dashboardBtn").addEventListener("click", () => {
-      const buyerId = document.getElementById("buyerIdInput").value;
-      listenOrders(buyerId);
-    });
+        // Create aesthetic cookie decorations
+        function createCookieDecorations() {
+            // Remove existing decorations
+            document.querySelectorAll('.cookie-decoration, .rgb-sticker').forEach(el => el.remove());
+            
+            // Create cookie decorations
+            const cookiePositions = [
+                { top: '10%', left: '5%', size: 'large', delay: '0s', color: 'red' },
+                { top: '20%', right: '10%', size: 'medium', delay: '2s', color: 'blue' },
+                { top: '60%', left: '8%', size: 'small', delay: '4s', color: 'yellow' },
+                { top: '70%', right: '5%', size: 'large', delay: '1s', color: 'blue' },
+                { top: '30%', left: '15%', size: 'medium', delay: '3s', color: 'red' },
+                { top: '85%', right: '15%', size: 'small', delay: '5s', color: 'yellow' },
+                { top: '15%', left: '45%', size: 'small', delay: '2.5s', color: 'red' },
+                { top: '75%', left: '50%', size: 'medium', delay: '4.5s', color: 'blue' },
+                { top: '40%', right: '25%', size: 'large', delay: '1.5s', color: 'yellow' }
+            ];
 
-    document.getElementById("ownerBtn").addEventListener("click", () => {
-      listenAllOrders();
-    });
-  </script></body>
+            cookiePositions.forEach((pos, index) => {
+                const decoration = document.createElement('div');
+                decoration.className = `cookie-decoration ${pos.size} ${pos.color}`;
+                decoration.style.top = pos.top;
+                if (pos.left) decoration.style.left = pos.left;
+                if (pos.right) decoration.style.right = pos.right;
+                decoration.style.animationDelay = pos.delay;
+                document.body.appendChild(decoration);
+            });
+
+            // Create RGB sticker decorations
+            const stickerPositions = [
+                { top: '25%', left: '12%', type: 'star', delay: '0s' },
+                { top: '35%', right: '8%', type: 'circle', delay: '1s' },
+                { top: '55%', left: '25%', type: 'triangle', delay: '2s' },
+                { top: '65%', right: '20%', type: 'diamond', delay: '3s' },
+                { top: '45%', left: '60%', type: 'star', delay: '1.5s' },
+                { top: '80%', left: '35%', type: 'circle', delay: '2.5s' },
+                { top: '15%', right: '30%', type: 'triangle', delay: '0.5s' },
+                { top: '90%', right: '40%', type: 'diamond', delay: '3.5s' }
+            ];
+
+            stickerPositions.forEach((pos) => {
+                const sticker = document.createElement('div');
+                sticker.className = `rgb-sticker ${pos.type}`;
+                sticker.style.top = pos.top;
+                if (pos.left) sticker.style.left = pos.left;
+                if (pos.right) sticker.style.right = pos.right;
+                sticker.style.animationDelay = pos.delay;
+                document.body.appendChild(sticker);
+            });
+        }
+
+        function setupEventListeners() {
+            // Setup buttons
+            getElement('generateIdBtn').onclick = generateRandomId;
+            getElement('setupBusinessBtn').onclick = setupBusiness;
+            
+            // Mode toggle buttons
+            getElement('customerBtn').onclick = () => toggleMode('customer');
+            getElement('ownerBtn').onclick = () => toggleMode('owner');
+            
+            // Owner login buttons
+            getElement('ownerLoginBtn').onclick = ownerLogin;
+            getElement('backToCustomerBtn').onclick = () => toggleMode('customer');
+            getElement('logoutOwnerBtn').onclick = ownerLogout;
+            
+            // Customer interface buttons
+            getElement('submitBtn').onclick = submitOrder;
+            getElement('anotherOrderBtn').onclick = showCustomerInterface;
+            getElement('redeemBtn').onclick = redeemPoints;
+            
+            // Price calculation inputs
+            getElement('mcQty').oninput = () => {
+                validateStockInput('mc');
+                calculatePrice();
+            };
+            getElement('dcQty').oninput = () => {
+                validateStockInput('dc');
+                calculatePrice();
+            };
+            getElement('orQty').oninput = () => {
+                validateStockInput('or');
+                calculatePrice();
+            };
+            getElement('wcTopping').onchange = calculatePrice;
+            
+            // Bulk order parser buttons
+            getElement('parseBulkBtn').onclick = parseBulkOrder;
+            getElement('clearBulkBtn').onclick = clearBulkOrder;
+            getElement('useBulkBtn').onclick = useBulkOrder;
+            
+            // Owner dashboard buttons
+            getElement('refreshBtn').onclick = loadOwnerDashboard;
+            getElement('exportBtn').onclick = exportOrders;
+            getElement('createBuyerBtn').onclick = createNewBuyer;
+            getElement('generateBuyerIdBtn').onclick = generateBuyerId;
+            
+            // Enter key handlers
+            getElement('businessIdInput').onkeypress = (e) => {
+                if (e.key === 'Enter') setupBusiness();
+            };
+            getElement('ownerPassword').onkeypress = (e) => {
+                if (e.key === 'Enter') ownerLogin();
+            };
+            
+            console.log('Event listeners set up successfully');
+        }
+
+        // Utility functions
+        function getElement(id) {
+            const element = document.getElementById(id);
+            if (!element) {
+                console.error(`Element with id '${id}' not found`);
+            }
+            return element;
+        }
+
+        function generateRandomId() {
+            const timestamp = Date.now().toString().slice(-6);
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            const id = `BUYER-${timestamp}-${random}`;
+            getElement('businessIdInput').value = id;
+        }
+
+        function generateBuyerId() {
+            const timestamp = Date.now().toString().slice(-6);
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            const id = `BUYER-${timestamp}-${random}`;
+            getElement('newBuyerIdInput').value = id;
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = getElement('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function hideAllSections() {
+            const sections = [
+                'businessSetup', 'ownerLogin', 'customerInterface', 'orderSuccess', 
+                'ownerDashboard', 'businessInfo', 'ownerBusinessInfo'
+            ];
+            
+            sections.forEach(sectionId => {
+                const element = getElement(sectionId);
+                if (element) {
+                    element.classList.add('hidden');
+                }
+            });
+        }
+
+        // Business setup functions
+        function setupBusiness() {
+            const businessId = getElement('businessIdInput').value.trim();
+            if (!businessId) {
+                showNotification('Please enter a Buyer ID', 'error');
+                return;
+            }
+            
+            BUYER_ID = businessId;
+            showNotification(`Buyer ID "${BUYER_ID}" created successfully!`, 'success');
+            showCustomerInterface();
+        }
+
+        function showBusinessSetup() {
+            hideAllSections();
+            document.body.classList.remove('aesthetic-dashboard');
+            document.querySelectorAll('.cookie-decoration, .rgb-sticker').forEach(el => el.remove());
+            getElement('businessSetup').classList.remove('hidden');
+            currentView = 'setup';
+        }
+
+        // Mode switching functions
+        function toggleMode(mode) {
+            const customerBtn = getElement('customerBtn');
+            const ownerBtn = getElement('ownerBtn');
+            
+            if (mode === 'customer') {
+                customerBtn.classList.add('active');
+                ownerBtn.classList.remove('active');
+                document.body.classList.remove('aesthetic-dashboard');
+                document.querySelectorAll('.cookie-decoration, .rgb-sticker').forEach(el => el.remove());
+                
+                if (BUYER_ID) {
+                    showCustomerInterface();
+                } else {
+                    showBusinessSetup();
+                }
+            } else if (mode === 'owner') {
+                ownerBtn.classList.add('active');
+                customerBtn.classList.remove('active');
+                showOwnerLogin();
+            }
+        }
+
+        // Owner authentication functions
+        function showOwnerLogin() {
+            hideAllSections();
+            document.body.classList.remove('aesthetic-dashboard');
+            document.querySelectorAll('.cookie-decoration, .rgb-sticker').forEach(el => el.remove());
+            getElement('ownerLogin').classList.remove('hidden');
+            currentView = 'owner-login';
+        }
+
+        function ownerLogin() {
+            const businessId = getElement('ownerBusinessId').value.trim();
+            const password = getElement('ownerPassword').value.trim();
+            
+            if (businessId === MAIN_BUSINESS_ID && password === OWNER_PASSWORD) {
+                isOwner = true;
+                showNotification('Owner access granted!', 'success');
+                loadOwnerDashboard();
+            } else {
+                showNotification('Invalid credentials', 'error');
+            }
+        }
+
+        function ownerLogout() {
+            isOwner = false;
+            getElement('ownerBusinessId').value = '';
+            getElement('ownerPassword').value = '';
+            document.body.classList.remove('aesthetic-dashboard');
+            document.querySelectorAll('.cookie-decoration, .rgb-sticker').forEach(el => el.remove());
+            toggleMode('customer');
+            showNotification('Logged out successfully', 'success');
+        }
+
+        // Customer interface functions
+        function showCustomerInterface() {
+            hideAllSections();
+            document.body.classList.add('aesthetic-dashboard');
+            createCookieDecorations();
+            getElement('customerInterface').classList.remove('hidden');
+            getElement('businessInfo').classList.remove('hidden');
+            getElement('buyerId').textContent = BUYER_ID;
+            currentView = 'customer';
+            updateCustomerStockDisplay();
+            updateCustomerStockDashboard();
+            updatePointsDisplay();
+            calculatePrice();
+            clearForm();
+        }
+
+        function clearForm() {
+            getElement('customerName').value = '';
+            getElement('customerRoom').value = '';
+            getElement('mcQty').value = '0';
+            getElement('dcQty').value = '0';
+            getElement('orQty').value = '0';
+            getElement('wcTopping').checked = false;
+            clearBulkOrder();
+        }
+
+        // Points System Functions
+        function getCustomerPoints(buyerId) {
+            return customerPoints[buyerId] || 0;
+        }
+
+        function addPoints(buyerId, points) {
+            addPointsSafely(buyerId, points);
+        }
+
+        function redeemPoints() {
+            const currentPoints = getCustomerPoints(BUYER_ID);
+            if (currentPoints < 20) {
+                showNotification('You need 20 points to redeem a free bundle', 'error');
+                return;
+            }
+            
+            // Use safe redemption function
+            const redeemPromise = redeemPointsSafely(BUYER_ID, 20);
+            
+            if (redeemPromise && typeof redeemPromise.then === 'function') {
+                // Online mode - wait for Firebase transaction
+                redeemPromise.then((success) => {
+                    if (success) {
+                        createRedemptionOrder();
+                    } else {
+                        showNotification('Insufficient points for redemption', 'error');
+                    }
+                });
+            } else {
+                // Offline mode - result is immediate
+                if (redeemPromise) {
+                    createRedemptionOrder();
+                } else {
+                    showNotification('Insufficient points for redemption', 'error');
+                }
+            }
+        }
+
+        function createRedemptionOrder() {
+            // Create a free order (1 cookie of each type)
+            const freeOrder = {
+                id: Date.now(),
+                buyerId: BUYER_ID,
+                customerName: 'Free Bundle Redemption',
+                customerRoom: 'REDEEMED',
+                mcQty: 1,
+                dcQty: 1,
+                orQty: 1,
+                wcTopping: false,
+                totalPrice: 0.00,
+                timestamp: new Date().toISOString(),
+                status: 'redeemed',
+                delivered: false,
+                paymentReceived: true, // Mark as paid since it's free
+                isRedemption: true
+            };
+            
+            // Check if there's enough stock
+            if (cookieStock.mc < 1 || cookieStock.dc < 1 || cookieStock.or < 1) {
+                // Refund points if insufficient stock
+                addPointsSafely(BUYER_ID, 20);
+                showNotification('Insufficient stock for redemption bundle. Points refunded.', 'error');
+                return;
+            }
+            
+            // Deduct stock
+            deductStock(1, 1, 1);
+            
+            orders.push(freeOrder);
+            saveOrderToFirebase(freeOrder);
+            
+            showNotification('Free bundle redeemed successfully! Check your orders.', 'success');
+        }
+
+        // Enhanced Firebase initialization with better debugging
+        function initializeFirebase() {
+            updateFirebaseStatus('connecting');
+            
+            // Enable offline persistence
+            try {
+                database.goOffline();
+                database.goOnline();
+            } catch (error) {
+                console.warn('Offline persistence not available:', error);
+            }
+            
+            // Listen for connection state
+            const connectedRef = database.ref('.info/connected');
+            connectedRef.on('value', (snapshot) => {
+                if (snapshot.val() === true) {
+                    updateFirebaseStatus('connected');
+                    console.log('Firebase connected successfully');
+                    loadDataFromFirebase();
+                    syncOfflineChanges();
+                } else {
+                    updateFirebaseStatus('disconnected');
+                    console.log('Firebase disconnected - working offline');
+                }
+            });
+
+            // Listen for orders changes with better debugging
+            database.ref('orders').on('value', (snapshot) => {
+                console.log('Orders data received from Firebase');
+                if (snapshot.exists()) {
+                    const firebaseOrders = [];
+                    snapshot.forEach((childSnapshot) => {
+                        firebaseOrders.push(childSnapshot.val());
+                    });
+                    
+                    console.log('Firebase orders count:', firebaseOrders.length);
+                    console.log('Local orders count before merge:', orders.length);
+                    
+                    // Replace local orders with Firebase data
+                    orders = firebaseOrders;
+                    
+                    console.log('Local orders count after merge:', orders.length);
+                    
+                    // Update displays if on owner dashboard
+                    if (currentView === 'owner') {
+                        updateDashboardStats();
+                        renderOrderList();
+                    }
+                } else {
+                    console.log('No orders found in Firebase');
+                    orders = [];
+                }
+            });
+
+            // Listen for stock changes with debugging
+            database.ref('stock').on('value', (snapshot) => {
+                console.log('Stock data received from Firebase');
+                if (snapshot.exists()) {
+                    const firebaseStock = snapshot.val();
+                    console.log('Firebase stock:', firebaseStock);
+                    cookieStock = { ...firebaseStock };
+                    console.log('Updated local stock:', cookieStock);
+                    updateStockDisplays();
+                } else {
+                    console.log('No stock data in Firebase, initializing...');
+                    saveStockToFirebase();
+                }
+            });
+
+            // Listen for customer points changes with debugging
+            database.ref('customerPoints').on('value', (snapshot) => {
+                console.log('Customer points data received from Firebase');
+                if (snapshot.exists()) {
+                    const firebasePoints = snapshot.val();
+                    console.log('Firebase points:', firebasePoints);
+                    console.log('Local points before update:', customerPoints);
+                    
+                    // Replace local points with Firebase data
+                    customerPoints = { ...firebasePoints };
+                    
+                    console.log('Local points after update:', customerPoints);
+                    
+                    if (currentView === 'customer' && BUYER_ID) {
+                        updatePointsDisplay();
+                    }
+                } else {
+                    console.log('No customer points in Firebase');
+                    customerPoints = {};
+                }
+            });
+        }
+
+        // Force refresh data from Firebase
+        function forceRefreshFromFirebase() {
+            if (!firebaseConnected) {
+                showNotification('Firebase not connected - cannot refresh', 'error');
+                return;
+            }
+
+            console.log('Force refreshing data from Firebase...');
+            
+            // Force reload orders
+            database.ref('orders').once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const firebaseOrders = [];
+                    snapshot.forEach((childSnapshot) => {
+                        firebaseOrders.push(childSnapshot.val());
+                    });
+                    orders = firebaseOrders;
+                    console.log('Force refreshed orders:', orders.length);
+                    if (currentView === 'owner') {
+                        updateDashboardStats();
+                        renderOrderList();
+                    }
+                }
+            });
+
+            // Force reload stock
+            database.ref('stock').once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    cookieStock = { ...snapshot.val() };
+                    updateStockDisplays();
+                    console.log('Force refreshed stock:', cookieStock);
+                }
+            });
+
+            // Force reload points
+            database.ref('customerPoints').once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    customerPoints = { ...snapshot.val() };
+                    if (currentView === 'customer' && BUYER_ID) {
+                        updatePointsDisplay();
+                    }
+                    console.log('Force refreshed points:', customerPoints);
+                }
+            });
+
+            showNotification('Data refreshed from Firebase', 'success');
+        }
+
+        // Debug Firebase data
+        function debugFirebaseData() {
+            const debugElement = getElement('debugInfo');
+            
+            const debugInfo = {
+                connected: firebaseConnected,
+                buyerId: BUYER_ID,
+                localOrders: orders.length,
+                localPoints: customerPoints[BUYER_ID] || 0,
+                localStock: cookieStock,
+                currentView: currentView
+            };
+            
+            console.log('=== FIREBASE DEBUG INFO ===');
+            console.log('Connected:', firebaseConnected);
+            console.log('Current Buyer ID:', BUYER_ID);
+            console.log('Local Orders Count:', orders.length);
+            console.log('Local Orders:', orders);
+            console.log('Local Points for Current User:', customerPoints[BUYER_ID] || 0);
+            console.log('All Customer Points:', customerPoints);
+            console.log('Local Stock:', cookieStock);
+            console.log('Current View:', currentView);
+            console.log('=========================');
+            
+            debugElement.textContent = `Orders: ${orders.length}, Points: ${customerPoints[BUYER_ID] || 0}, Stock: MC=${cookieStock.mc} DC=${cookieStock.dc} OR=${cookieStock.or}`;
+            
+            // Test Firebase connection
+            database.ref('.info/connected').once('value', (snapshot) => {
+                console.log('Firebase connection test:', snapshot.val());
+            });
+            
+            showNotification('Debug info logged to console', 'success');
+        }
+
+        function mergeOrders(firebaseOrders) {
+            const localOrderIds = new Set(orders.map(order => order.id));
+            
+            // Add new orders from Firebase that don't exist locally
+            firebaseOrders.forEach(fbOrder => {
+                if (!localOrderIds.has(fbOrder.id)) {
+                    orders.push(fbOrder);
+                }
+            });
+        }
+
+        function syncOfflineChanges() {
+            if (!firebaseConnected) return;
+            
+            console.log('Syncing offline changes to Firebase...');
+            
+            // Sync any local-only orders
+            orders.forEach(order => {
+                if (!order.syncedToFirebase) {
+                    saveOrderToFirebase(order);
+                    order.syncedToFirebase = true;
+                }
+            });
+            
+            // Sync stock changes
+            saveStockToFirebase();
+            
+            showNotification('Offline changes synced successfully', 'success');
+        }
+
+        function updatePointsDisplay() {
+            const currentPoints = getCustomerPoints(BUYER_ID);
+            const pointsElement = getElement('customerPoints');
+            const progressElement = getElement('pointsProgress');
+            const statusElement = getElement('pointsStatus');
+            const redeemBtn = getElement('redeemBtn');
+            
+            // Update points display
+            pointsElement.textContent = currentPoints;
+            
+            // Update progress bar
+            const progressPercent = Math.min((currentPoints / 20) * 100, 100);
+            progressElement.style.width = `${progressPercent}%`;
+            
+            // Update status text
+            if (currentPoints >= 20) {
+                statusElement.textContent = 'You can redeem a free bundle!';
+                redeemBtn.disabled = false;
+                redeemBtn.classList.add('can-redeem');
+                redeemBtn.textContent = 'Redeem Free Bundle (20 pts)';
+            } else {
+                const needed = 20 - currentPoints;
+                statusElement.textContent = `${needed} more points for free bundle`;
+                redeemBtn.disabled = true;
+                redeemBtn.classList.remove('can-redeem');
+                redeemBtn.textContent = 'Redeem Free Bundle (20 pts)';
+            }
+        }
+
+        // Stock Management Functions
+        function updateStock(cookieType) {
+            const stockInput = getElement(`${cookieType}Stock`);
+            const newStock = parseInt(stockInput.value) || 0;
+            
+            if (newStock < 0) {
+                showNotification('Stock cannot be negative', 'error');
+                stockInput.value = cookieStock[cookieType];
+                return;
+            }
+            
+            cookieStock[cookieType] = newStock;
+            updateStockDisplays();
+            saveStockToFirebase();
+            showNotification(`${getCookieName(cookieType)} stock updated to ${newStock}`, 'success');
+        }
+
+        function resetAllStock() {
+            if (confirm('Are you sure you want to reset all stock to 50?')) {
+                cookieStock.mc = 50;
+                cookieStock.dc = 50;
+                cookieStock.or = 50;
+                
+                getElement('mcStock').value = '50';
+                getElement('dcStock').value = '50';
+                getElement('orStock').value = '50';
+                
+                updateStockDisplays();
+                saveStockToFirebase();
+                showNotification('All stock reset to 50', 'success');
+            }
+        }
+
+        function addStockToAll() {
+            cookieStock.mc += 50;
+            cookieStock.dc += 50;
+            cookieStock.or += 50;
+            
+            getElement('mcStock').value = cookieStock.mc.toString();
+            getElement('dcStock').value = cookieStock.dc.toString();
+            getElement('orStock').value = cookieStock.or.toString();
+            
+            updateStockDisplays();
+            saveStockToFirebase();
+            showNotification('Added 50 to all cookie stock', 'success');
+        }
+
+        function updateStockDisplays() {
+            // Update owner dashboard stock displays
+            if (getElement('mcStockDisplay')) {
+                getElement('mcStockDisplay').textContent = cookieStock.mc;
+                getElement('dcStockDisplay').textContent = cookieStock.dc;
+                getElement('orStockDisplay').textContent = cookieStock.or;
+            }
+            
+            // Update customer interface stock displays
+            updateCustomerStockDisplay();
+            updateCustomerStockDashboard();
+        }
+
+        function updateCustomerStockDashboard() {
+            const stockItems = [
+                { id: 'customerMcStock', stock: cookieStock.mc },
+                { id: 'customerDcStock', stock: cookieStock.dc },
+                { id: 'customerOrStock', stock: cookieStock.or }
+            ];
+
+            stockItems.forEach(({ id, stock }) => {
+                const element = getElement(id);
+                if (element) {
+                    element.textContent = stock;
+                    
+                    // Remove existing classes
+                    element.classList.remove('low-stock', 'out-of-stock');
+                    
+                    // Add appropriate class based on stock level
+                    if (stock === 0) {
+                        element.classList.add('out-of-stock');
+                    } else if (stock <= 10) {
+                        element.classList.add('low-stock');
+                    }
+                }
+            });
+        }
+
+        function updateCustomerStockDisplay() {
+            const stockInfos = [
+                { id: 'mcStockInfo', stock: cookieStock.mc, name: 'MC' },
+                { id: 'dcStockInfo', stock: cookieStock.dc, name: 'DC' },
+                { id: 'orStockInfo', stock: cookieStock.or, name: 'OR' }
+            ];
+
+            stockInfos.forEach(({ id, stock, name }) => {
+                const element = getElement(id);
+                if (element) {
+                    let className = '';
+                    let message = `Available: ${stock}`;
+                    
+                    if (stock === 0) {
+                        className = 'stock-out';
+                        message = 'OUT OF STOCK';
+                    } else if (stock <= 10) {
+                        className = 'stock-low';
+                        message = `Low Stock: ${stock}`;
+                    } else {
+                        className = 'stock-normal';
+                    }
+                    
+                    element.textContent = message;
+                    element.className = `cookie-stock ${className}`;
+                }
+            });
+        }
+
+        function validateStockInput(cookieType) {
+            const qtyInput = getElement(`${cookieType}Qty`);
+            const requestedQty = parseInt(qtyInput.value) || 0;
+            const availableStock = cookieStock[cookieType];
+            
+            if (requestedQty > availableStock) {
+                qtyInput.value = availableStock.toString();
+                showNotification(`Only ${availableStock} ${getCookieName(cookieType)} cookies available`, 'error');
+            }
+        }
+
+        function getCookieName(cookieType) {
+            const names = {
+                mc: 'Milk Chocolate',
+                dc: 'Double Chocolate',
+                or: 'Original'
+            };
+            return names[cookieType] || cookieType;
+        }
+
+        function deductStock(mcQty, dcQty, orQty) {
+            const oldStock = { ...cookieStock };
+            
+            cookieStock.mc -= mcQty;
+            cookieStock.dc -= dcQty;
+            cookieStock.or -= orQty;
+            
+            // Ensure stock doesn't go negative
+            cookieStock.mc = Math.max(0, cookieStock.mc);
+            cookieStock.dc = Math.max(0, cookieStock.dc);
+            cookieStock.or = Math.max(0, cookieStock.or);
+            
+            updateStockDisplays();
+            saveStockToFirebase();
+            
+            // Show stock change notification
+            const changes = [];
+            if (mcQty > 0) changes.push(`MC: ${oldStock.mc} → ${cookieStock.mc}`);
+            if (dcQty > 0) changes.push(`DC: ${oldStock.dc} → ${cookieStock.dc}`);
+            if (orQty > 0) changes.push(`OR: ${oldStock.or} → ${cookieStock.or}`);
+            
+            if (changes.length > 0) {
+                showNotification(`Stock updated: ${changes.join(', ')}`, 'success');
+            }
+        }
+
+        function calculatePrice() {
+            const mcQty = parseInt(getElement('mcQty').value) || 0;
+            const dcQty = parseInt(getElement('dcQty').value) || 0;
+            const orQty = parseInt(getElement('orQty').value) || 0;
+            const wcTopping = getElement('wcTopping').checked;
+            
+            const totalCookies = mcQty + dcQty + orQty;
+            let total = 0;
+            
+            // Calculate bundle price using the new function
+            if (totalCookies > 0) {
+                total = calculateBundlePrice(totalCookies);
+                
+                // Add topping price if selected
+                if (wcTopping) {
+                    total += TOPPING_PRICE;
+                }
+            }
+            
+            // Show pricing breakdown if cookies selected
+            const priceDisplay = getElement('priceDisplay');
+            if (totalCookies > 0) {
+                const breakdown = wcTopping 
+                    ? `${totalCookies} cookies: RM${(total - TOPPING_PRICE).toFixed(2)} + WC Topping: RM${TOPPING_PRICE.toFixed(2)}`
+                    : `${totalCookies} cookies: RM${total.toFixed(2)}`;
+                priceDisplay.innerHTML = `
+                    <div style="font-size: 28px; margin-bottom: 10px;">Total: RM${total.toFixed(2)}</div>
+                    <div style="font-size: 14px; opacity: 0.8;">${breakdown}</div>
+                `;
+            } else {
+                priceDisplay.textContent = 'Total: RM0.00';
+            }
+            
+            return total;
+        }
+
+        // Bulk order parser functions
+        function parseBulkOrder() {
+            const bulkText = getElement('bulkOrderText').value.trim();
+            if (!bulkText) {
+                showNotification('Please enter bulk order text', 'error');
+                return;
+            }
+
+            try {
+                const lines = bulkText.split('\n').filter(line => line.trim());
+                const parsedOrders = [];
+                let totalPrice = 0;
+
+                for (const line of lines) {
+                    const parsed = parseBulkOrderLine(line.trim());
+                    if (parsed) {
+                        parsedOrders.push(parsed);
+                        totalPrice += parsed.price;
+                    }
+                }
+
+                if (parsedOrders.length === 0) {
+                    showNotification('No valid orders found in bulk text', 'error');
+                    return;
+                }
+
+                displayBulkParseResult(parsedOrders, totalPrice);
+                
+            } catch (error) {
+                showNotification('Error parsing bulk order', 'error');
+                console.error(error);
+            }
+        }
+
+        function parseBulkOrderLine(line) {
+            line = line.replace(/\s+/g, ' ').trim();
+            const parts = line.split(' ');
+            
+            if (parts.length < 2) return null;
+            
+            const name = parts[0];
+            let room = '';
+            let cookies = { mc: 0, dc: 0, or: 0 };
+            let wcTopping = false;
+            
+            // Find room number (starts with C or c)
+            const roomIndex = parts.findIndex(part => /^[Cc][\d\-]+/.test(part));
+            if (roomIndex !== -1) {
+                room = parts[roomIndex];
+                parts.splice(roomIndex, 1);
+            }
+            
+            const remaining = parts.slice(1).join(' ');
+            
+            // Parse cookie orders
+            const mcMatch = remaining.match(/m[cC][\s:]*(\d+)|(\d+)\s*m[cC]/i);
+            const dcMatch = remaining.match(/d[cC][\s:]*(\d+)|(\d+)\s*d[cC]/i);
+            const orMatch = remaining.match(/o[rR][\s:]*(\d+)|(\d+)\s*o[rR]/i);
+            const wcMatch = /w[cC]/i.test(remaining);
+            
+            if (mcMatch) cookies.mc = parseInt(mcMatch[1] || mcMatch[2]) || 0;
+            if (dcMatch) cookies.dc = parseInt(dcMatch[1] || dcMatch[2]) || 0;
+            if (orMatch) cookies.or = parseInt(orMatch[1] || orMatch[2]) || 0;
+            wcTopping = wcMatch;
+            
+            // Handle cookie codes like "C000:2 c1-000:1"
+            const cookieCodeMatches = remaining.match(/[cC][\d\-]+[\s:]*(\d+)/g);
+            if (cookieCodeMatches) {
+                for (const match of cookieCodeMatches) {
+                    const qtyMatch = match.match(/(\d+)$/);
+                    if (qtyMatch) {
+                        const qty = parseInt(qtyMatch[1]);
+                        cookies.mc += qty; // Add to MC for simplicity
+                    }
+                }
+            }
+            
+            const totalCookies = cookies.mc + cookies.dc + cookies.or;
+            if (totalCookies === 0) return null;
+            
+            // Calculate bundle price using the new function
+            let price = calculateBundlePrice(totalCookies);
+            if (wcTopping) price += TOPPING_PRICE;
+            
+            return { name, room, cookies, wcTopping, price, totalCookies };
+        }
+
+        function displayBulkParseResult(orders, totalPrice) {
+            const resultDiv = getElement('bulkParseResult');
+            const detailsDiv = getElement('bulkParseDetails');
+            
+            let html = '';
+            
+            orders.forEach((order) => {
+                html += `
+                    <div class="parse-item">
+                        <div class="parse-header">${order.name} - ${order.room || 'No room'}</div>
+                        <div class="parse-details">
+                            MC: ${order.cookies.mc}, DC: ${order.cookies.dc}, OR: ${order.cookies.or}
+                            ${order.wcTopping ? ', WC Topping' : ''}
+                            <strong> - RM${order.price.toFixed(2)}</strong>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                <div class="parse-totals">
+                    <strong>Total Orders: ${orders.length}</strong><br>
+                    <strong>Grand Total: RM${totalPrice.toFixed(2)}</strong>
+                </div>
+            `;
+            
+            detailsDiv.innerHTML = html;
+            resultDiv.classList.remove('hidden');
+            
+            parsedBulkOrders = orders;
+            parsedBulkTotal = totalPrice;
+        }
+
+        function useBulkOrder() {
+            if (!parsedBulkOrders || parsedBulkOrders.length === 0) {
+                showNotification('No parsed orders to use', 'error');
+                return;
+            }
+            
+            const firstOrder = parsedBulkOrders[0];
+            getElement('customerName').value = firstOrder.name;
+            getElement('customerRoom').value = firstOrder.room || '';
+            getElement('mcQty').value = firstOrder.cookies.mc.toString();
+            getElement('dcQty').value = firstOrder.cookies.dc.toString();
+            getElement('orQty').value = firstOrder.cookies.or.toString();
+            getElement('wcTopping').checked = firstOrder.wcTopping;
+            
+            calculatePrice();
+            clearBulkOrder();
+            showNotification(`Using order for ${firstOrder.name}`, 'success');
+        }
+
+        function clearBulkOrder() {
+            getElement('bulkOrderText').value = '';
+            getElement('bulkParseResult').classList.add('hidden');
+            parsedBulkOrders = null;
+            parsedBulkTotal = 0;
+        }
+
+        // Order submission functions
+        function submitOrder() {
+            const name = getElement('customerName').value.trim();
+            const room = getElement('customerRoom').value.trim();
+            const mcQty = parseInt(getElement('mcQty').value) || 0;
+            const dcQty = parseInt(getElement('dcQty').value) || 0;
+            const orQty = parseInt(getElement('orQty').value) || 0;
+            const wcTopping = getElement('wcTopping').checked;
+            
+            if (!name) {
+                showNotification('Please enter your name', 'error');
+                return;
+            }
+            
+            if (!room) {
+                showNotification('Please enter your room number', 'error');
+                return;
+            }
+            
+            const totalCookies = mcQty + dcQty + orQty;
+            if (totalCookies === 0) {
+                showNotification('Please select at least one cookie', 'error');
+                return;
+            }
+            
+            // Check stock availability
+            if (mcQty > cookieStock.mc || dcQty > cookieStock.dc || orQty > cookieStock.or) {
+                showNotification('Insufficient stock for selected quantities', 'error');
+                return;
+            }
+            
+            const price = calculatePrice();
+            
+            const order = {
+                id: Date.now(),
+                buyerId: BUYER_ID,
+                customerName: name,
+                customerRoom: room,
+                mcQty,
+                dcQty,
+                orQty,
+                wcTopping,
+                totalPrice: price,
+                timestamp: new Date().toISOString(),
+                status: 'pending',
+                delivered: false,
+                paymentReceived: false,
+                pointsAwarded: 2,
+                isRedemption: false
+            };
+            
+            // Deduct stock
+            deductStock(mcQty, dcQty, orQty);
+            
+            // Award 2 points for the order
+            addPoints(BUYER_ID, 2);
+            
+            orders.push(order);
+            saveOrderToFirebase(order);
+            showOrderSuccess(order);
+        }
+
+        function showOrderSuccess(order) {
+            hideAllSections();
+            document.body.classList.add('aesthetic-dashboard');
+            createCookieDecorations();
+            getElement('orderSuccess').classList.remove('hidden');
+            
+            const currentPoints = getCustomerPoints(BUYER_ID);
+            const canRedeem = currentPoints >= 20;
+            
+            const summary = `
+                <h3>Order Details</h3>
+                <p><strong>Customer:</strong> ${order.customerName}</p>
+                <p><strong>Room:</strong> ${order.customerRoom}</p>
+                <p><strong>Cookies:</strong> MC: ${order.mcQty}, DC: ${order.dcQty}, OR: ${order.orQty}</p>
+                <p><strong>WC Topping:</strong> ${order.wcTopping ? 'Yes' : 'No'}</p>
+                <p><strong>Total Price:</strong> RM${order.totalPrice.toFixed(2)}</p>
+                <p><strong>Order ID:</strong> ${order.id}</p>
+                
+                <div style="margin-top: 20px; padding: 15px; background: rgba(255, 152, 0, 0.2); border-radius: 10px; border: 1px solid rgba(255, 152, 0, 0.4);">
+                    <h4 style="margin-bottom: 10px; color: #ffeb3b;">Points Earned!</h4>
+                    <p style="font-size: 16px; font-weight: 600;">+2 Reward Points</p>
+                    <p style="font-size: 14px;">Total Points: ${currentPoints}</p>
+                    ${canRedeem ? '<p style="font-size: 14px; color: #4caf50; font-weight: 600;">🎉 You can now redeem a free bundle!</p>' : `<p style="font-size: 14px;">You need ${20 - currentPoints} more points for a free bundle</p>`}
+                </div>
+                
+                <div style="margin-top: 15px; padding: 15px; background: rgba(33, 150, 243, 0.2); border-radius: 10px;">
+                    <h4 style="margin-bottom: 10px; color: #ffeb3b;">Updated Stock Levels:</h4>
+                    <p style="font-size: 14px;">Milk Chocolate: ${cookieStock.mc} remaining</p>
+                    <p style="font-size: 14px;">Double Chocolate: ${cookieStock.dc} remaining</p>
+                    <p style="font-size: 14px;">Original: ${cookieStock.or} remaining</p>
+                </div>
+                
+                <div style="margin-top: 15px; padding: 15px; background: rgba(76, 175, 80, 0.2); border-radius: 10px;">
+                    <h4 style="margin-bottom: 10px; color: #c8e6c9;">Firebase Sync Status:</h4>
+                    <p style="font-size: 14px;">${firebaseConnected ? '✅ Order synced to cloud database' : '⚠️ Order saved locally only'}</p>
+                </div>
+            `;
+            
+            getElement('orderSummary').innerHTML = summary;
+            showNotification('Order placed successfully! +2 points earned!', 'success');
+        }
+
+        // Owner dashboard functions
+        function loadOwnerDashboard() {
+            hideAllSections();
+            document.body.classList.add('aesthetic-dashboard');
+            createCookieDecorations();
+            getElement('ownerDashboard').classList.remove('hidden');
+            getElement('ownerBusinessInfo').classList.remove('hidden');
+            getElement('ownerBusinessIdDisplay').textContent = MAIN_BUSINESS_ID;
+            currentView = 'owner';
+            
+            // Initialize stock inputs with current values
+            getElement('mcStock').value = cookieStock.mc.toString();
+            getElement('dcStock').value = cookieStock.dc.toString();
+            getElement('orStock').value = cookieStock.or.toString();
+            
+            updateDashboardStats();
+            updateStockDisplays();
+            renderOrderList();
+        }
+
+        function updateDashboardStats() {
+            const totalOrdersCount = orders.length;
+            const totalRevenue = orders.reduce((sum, order) => sum + order.totalPrice, 0);
+            const pendingCount = orders.filter(order => !order.delivered).length;
+            const completedCount = orders.filter(order => order.delivered).length;
+            
+            const totalMC = orders.reduce((sum, order) => sum + order.mcQty, 0);
+            const totalDC = orders.reduce((sum, order) => sum + order.dcQty, 0);
+            const totalOR = orders.reduce((sum, order) => sum + order.orQty, 0);
+            const totalWC = orders.filter(order => order.wcTopping).length;
+            const totalPieces = totalMC + totalDC + totalOR;
+            
+            getElement('totalOrders').textContent = totalOrdersCount;
+            getElement('totalRevenue').textContent = totalRevenue.toFixed(2);
+            getElement('pendingOrders').textContent = pendingCount;
+            getElement('completedOrders').textContent = completedCount;
+            
+            getElement('totalMC').textContent = totalMC;
+            getElement('totalDC').textContent = totalDC;
+            getElement('totalOR').textContent = totalOR;
+            getElement('totalWC').textContent = totalWC;
+            getElement('totalPieces').textContent = totalPieces;
+        }
+
+        function renderOrderList() {
+            const orderList = getElement('orderList');
+            
+            if (orders.length === 0) {
+                orderList.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 40px;">No orders yet</p>';
+                return;
+            }
+            
+            const sortedOrders = [...orders].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            const html = sortedOrders.map(order => {
+                const orderClasses = [];
+                if (order.delivered) orderClasses.push('delivered');
+                if (order.paymentReceived) orderClasses.push('payment-received');
+                
+                return `
+                    <div class="order-card ${orderClasses.join(' ')}" data-order-id="${order.id}">
+                        <div class="order-info">
+                            <div class="customer-name">${order.customerName}</div>
+                            <div class="order-detail">Room: ${order.customerRoom}</div>
+                            <div class="order-detail">MC: ${order.mcQty}, DC: ${order.dcQty}, OR: ${order.orQty}${order.wcTopping ? ', WC' : ''}</div>
+                            <div class="order-detail">${new Date(order.timestamp).toLocaleDateString()} ${new Date(order.timestamp).toLocaleTimeString()}</div>
+                            <div class="buyer-id">Buyer: ${order.buyerId}</div>
+                        </div>
+                        <div class="order-price">RM${order.totalPrice.toFixed(2)}</div>
+                        <div class="order-actions">
+                            ${!order.delivered ? `<button class="btn-action btn-delivered" onclick="toggleDelivered(${order.id})">Mark Delivered</button>` : `<button class="btn-action btn-undo" onclick="toggleDelivered(${order.id})">Undo</button>`}
+                            ${!order.paymentReceived ? `<button class="btn-action btn-paid" onclick="togglePayment(${order.id})">Mark Paid</button>` : `<button class="btn-action btn-undo" onclick="togglePayment(${order.id})">Undo Payment</button>`}
+                            <button class="btn-action btn-delete" onclick="deleteOrder(${order.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            orderList.innerHTML = html;
+        }
+
+        // Global functions for order management
+        function toggleDelivered(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.delivered = !order.delivered;
+                updateOrderInFirebase(orderId, { delivered: order.delivered });
+                updateDashboardStats();
+                renderOrderList();
+                showNotification(`Order ${order.delivered ? 'marked as delivered' : 'delivery status removed'}`, 'success');
+            }
+        }
+
+        function togglePayment(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.paymentReceived = !order.paymentReceived;
+                updateOrderInFirebase(orderId, { paymentReceived: order.paymentReceived });
+                updateDashboardStats();
+                renderOrderList();
+                showNotification(`Payment ${order.paymentReceived ? 'marked as received' : 'status removed'}`, 'success');
+            }
+        }
+
+        function toggleTopping() {
+            const checkbox = getElement('wcTopping');
+            const toppingOption = document.querySelector('.topping-option');
+            
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                toppingOption.classList.add('selected');
+            } else {
+                toppingOption.classList.remove('selected');
+            }
+            
+            calculatePrice();
+        }
+
+        function deleteOrder(orderId) {
+            if (confirm('Are you sure you want to delete this order?')) {
+                orders = orders.filter(o => o.id !== orderId);
+                deleteOrderFromFirebase(orderId);
+                updateDashboardStats();
+                renderOrderList();
+                showNotification('Order deleted successfully', 'success');
+            }
+        }
+
+        function createNewBuyer() {
+            const newBuyerId = getElement('newBuyerIdInput').value.trim();
+            if (!newBuyerId) {
+                showNotification('Please enter a Buyer ID', 'error');
+                return;
+            }
+            
+            showNotification(`Buyer ID "${newBuyerId}" created (for reference only)`, 'success');
+            getElement('newBuyerIdInput').value = '';
+        }
+
+        function exportOrders() {
+            if (orders.length === 0) {
+                showNotification('No orders to export', 'error');
+                return;
+            }
+            
+            const csvContent = generateCSV();
+            downloadCSV(csvContent, `cookie-orders-${new Date().toISOString().slice(0, 10)}.csv`);
+            showNotification('Orders exported successfully', 'success');
+        }
+
+        function generateCSV() {
+            const headers = ['Order ID', 'Buyer ID', 'Customer Name', 'Room', 'MC Qty', 'DC Qty', 'OR Qty', 'WC Topping', 'Total Price', 'Timestamp', 'Delivered', 'Payment Received'];
+            
+            const rows = orders.map(order => [
+                order.id,
+                order.buyerId,
+                order.customerName,
+                order.customerRoom,
+                order.mcQty,
+                order.dcQty,
+                order.orQty,
+                order.wcTopping ? 'Yes' : 'No',
+                order.totalPrice.toFixed(2),
+                new Date(order.timestamp).toLocaleString(),
+                order.delivered ? 'Yes' : 'No',
+                order.paymentReceived ? 'Yes' : 'No'
+            ]);
+            
+            const csvContent = [headers, ...rows].map(row => 
+                row.map(field => `"${field}"`).join(',')
+            ).join('\n');
+            
+            return csvContent;
+        }
+
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
 </html>
