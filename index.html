@@ -2756,10 +2756,16 @@
             
             debugElement.textContent = `Orders: ${orders.length}, Points: ${customerPoints[BUYER_ID] || 0}, Stock: MC=${cookieStock.mc} DC=${cookieStock.dc} OR=${cookieStock.or}`;
             
-            // Test Firebase connection
-            database.ref('.info/connected').once('value', (snapshot) => {
-                console.log('Firebase connection test:', snapshot.val());
-            });
+            // Test Firebase connection for Firestore
+database.collection('test').limit(1).get()
+    .then(() => {
+        console.log('Firebase connection test: connected');
+        firebaseConnected = true;
+    })
+    .catch((error) => {
+        console.log('Firebase connection test: failed', error);
+        firebaseConnected = false;
+    });
             
             showNotification('Debug info logged to console', 'success');
         }
