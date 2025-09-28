@@ -8,9 +8,7 @@
     <!-- Firebase SDK -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-app-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-database-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-auth-compat.min.js"></script>
     
-
     <style>
         * {
             box-sizing: border-box;
@@ -1860,48 +1858,27 @@
             appId: "1:123456789012:web:abcdef123456789012"
         };
 
-        // Initialize Firebase (REAL) ✅
-let database;
-let auth;
-let isConnected = false;
+        // Initialize Firebase (Mock for demo)
+        let database = null;
+        let isConnected = false;
 
-try {
-    firebase.initializeApp(firebaseConfig);
-    database = firebase.firestore();
-    auth = firebase.auth();
-    isConnected = true;
-    
-    console.log('Firebase connected successfully!');
-    updateFirebaseStatus('connected');
-    
-    // AUTO USER SYNC dengan BUYER ID
-    firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-            const buyerId = currentBusinessId || 'buyer_' + Date.now();
-            const userRef = database.collection('users').doc(buyerId);
-            
-            userRef.set({
-                buyerId: buyerId,
-                name: user.displayName || "Customer",
-                email: user.email,
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-                orders: [],
-                customerPoints: customerPoints || 0
-            }, { merge: true });
-            
-            userRef.onSnapshot((doc) => {
-                if (doc.exists) {
-                    console.log("Buyer data synced:", doc.data());
-                }
-            });
+        // Mock Firebase initialization
+        try {
+            // firebase.initializeApp(firebaseConfig);
+            // database = firebase.database();
+            simulateFirebaseConnection();
+        } catch (error) {
+            updateFirebaseStatus('disconnected');
+            console.log('Firebase connection failed - running in offline mode');
         }
-    });
-    
-} catch (error) {
-    console.error('Firebase initialization error:', error);
-    updateFirebaseStatus('disconnected');
-    isConnected = false;
-}
+
+        function simulateFirebaseConnection() {
+            updateFirebaseStatus('connecting');
+            setTimeout(() => {
+                isConnected = true;
+                updateFirebaseStatus('connected');
+            }, 2000);
+        }
 
         function updateFirebaseStatus(status) {
             const statusEl = document.getElementById('firebaseStatus');
@@ -1923,8 +1900,6 @@ try {
             updateStock();
             updateCustomerStockDisplay();
         });
-
-
 
         function setupEventListeners() {
             // Mode toggles
@@ -1951,36 +1926,6 @@ try {
             ['mcQty', 'dcQty', 'orQty'].forEach(id => {
                 document.getElementById(id).addEventListener('input', calculatePrice);
             });
-  
-            // Firebase Real Setup (ADD NI SEBELUM STOCK MANAGEMENT)
-            try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.firestore();
-            auth = firebase.auth();
-            isConnected = true;
-    
-           console.log('Firebase connected!');
-           updateFirebaseStatus('connected');
-    
-           firebase.auth().onAuthStateChanged((user) => {
-           if (user) {
-            const buyerId = currentBusinessId || 'buyer_' + Date.now();
-            const userRef = database.collection('users').doc(buyerId);
-            
-            userRef.set({
-                buyerId: buyerId,
-                name: user.displayName || "Customer",
-                customerPoints: customerPoints || 0,
-                orders: orders || []
-            }, { merge: true });
-           }
-             });
-    
-           } catch (error) {
-          console.error('Firebase error:', error);
-          updateFirebaseStatus('disconnected');
-          }
-
 
             // Stock management
             updateStock();
