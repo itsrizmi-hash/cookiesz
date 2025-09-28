@@ -1,0 +1,2952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Orders System</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-database-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.2/firebase-auth-compat.min.js"></script>
+    
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #3f51b5 0%, #2196f3 25%, #e91e63 50%, #ff5722 75%, #ffeb3b 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        /* Special background for both owner and customer dashboards */
+        body.aesthetic-dashboard {
+            background: linear-gradient(135deg, #ff1744 0%, #ffeb3b 25%, #2196f3 50%, #e91e63 75%, #ff9800 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Aesthetic background decorations for dashboards */
+        body.aesthetic-dashboard::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(255, 23, 68, 0.6) 0%, rgba(255, 23, 68, 0.4) 40%, transparent 45%),
+                radial-gradient(circle at 85% 15%, rgba(33, 150, 243, 0.5) 0%, rgba(33, 150, 243, 0.3) 35%, transparent 40%),
+                radial-gradient(circle at 25% 80%, rgba(255, 235, 59, 0.4) 0%, rgba(255, 235, 59, 0.2) 45%, transparent 50%),
+                radial-gradient(circle at 75% 85%, rgba(233, 30, 99, 0.5) 0%, rgba(233, 30, 99, 0.3) 40%, transparent 45%);
+            z-index: -2;
+            opacity: 0.7;
+        }
+
+        /* Floating noodle decorations with RGB colors */
+        body.aesthetic-dashboard::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(45deg, transparent 45%, rgba(255, 23, 68, 0.4) 47%, rgba(255, 23, 68, 0.4) 53%, transparent 55%),
+                linear-gradient(135deg, transparent 30%, rgba(255, 235, 59, 0.3) 32%, rgba(255, 235, 59, 0.3) 38%, transparent 40%),
+                linear-gradient(-45deg, transparent 60%, rgba(33, 150, 243, 0.3) 62%, rgba(33, 150, 243, 0.3) 68%, transparent 70%);
+            background-size: 200px 150px, 180px 120px, 160px 140px;
+            background-position: 0px 0px, 100px 50px, 200px 100px;
+            animation: floatNoodles 20s ease-in-out infinite;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        @keyframes floatNoodles {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-20px) rotate(2deg); }
+            50% { transform: translateY(-10px) rotate(-1deg); }
+            75% { transform: translateY(-30px) rotate(3deg); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            position: relative;
+        }
+
+        body.aesthetic-dashboard .container {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px 0 rgba(255, 23, 68, 0.4);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Firebase Status Indicator */
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .firebase-status.connected {
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+        }
+
+        .firebase-status.disconnected {
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+        }
+
+        .firebase-status.connecting {
+            background: rgba(255, 193, 7, 0.8);
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        body.aesthetic-dashboard .logo {
+            background: linear-gradient(45deg, #ff1744, #ffeb3b, #2196f3, #e91e63);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            font-size: 32px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .toggle-btn.active {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            transform: translateY(-1px);
+        }
+
+        body.aesthetic-dashboard .toggle-btn.active {
+            background: linear-gradient(135deg, #ff1744, #2196f3);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(255, 23, 68, 0.4);
+        }
+
+        /* Status */
+        .status-bar {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Forms */
+        .form-section {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .form-container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .form-input:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.8);
+            background: white;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #2196f3, #ff1744);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ffeb3b, #ff1744);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+            width: auto;
+            margin: 0 0 0 10px;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.2);
+            margin-top: 20px;
+        }
+
+        /* Customer Interface */
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .cookie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .cookie-card {
+            background: linear-gradient(135deg, #ffeb3b, #ff9800);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(255, 235, 59, 0.2);
+        }
+
+        .cookie-card:focus-within {
+            border-color: rgba(255, 23, 68, 0.8);
+            background: linear-gradient(135deg, #ff1744, #2196f3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 23, 68, 0.3);
+        }
+
+        .cookie-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3);
+        }
+
+        .cookie-visual {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            position: relative;
+            background: radial-gradient(circle, #ff1744, #2196f3);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .cookie-visual.milk-chocolate {
+            background: radial-gradient(circle, #ffeb3b, #ff1744);
+        }
+
+        .cookie-visual.double-chocolate {
+            background: radial-gradient(circle, #2196f3, #e91e63);
+        }
+
+        .cookie-visual.original {
+            background: radial-gradient(circle, #ff9800, #ffeb3b);
+        }
+
+        .cookie-visual::before {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ffeb3b;
+            border-radius: 50%;
+            top: 20%;
+            left: 25%;
+            box-shadow: 
+                20px 10px 0 -2px #ff1744,
+                -5px 25px 0 -1px #2196f3,
+                25px 35px 0 -3px #ffeb3b,
+                35px 15px 0 -2px #ff1744,
+                10px 45px 0 -1px #2196f3;
+        }
+
+        .cookie-visual::after {
+            content: '✨';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 16px;
+            animation: sparkle 2s infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .topping-option {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #2196f3, #ffeb3b);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+        }
+
+        .topping-option:hover {
+            background: linear-gradient(135deg, #ff1744, #2196f3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 23, 68, 0.3);
+        }
+
+        .topping-option.selected {
+            background: linear-gradient(135deg, #ffeb3b, #ff1744);
+            border-color: #2196f3;
+            transform: translateY(-2px);
+        }
+
+        .topping-visual {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: radial-gradient(circle, #ffeb3b, #ff1744);
+            position: relative;
+            box-shadow: 0 3px 8px rgba(255, 235, 59, 0.3);
+        }
+
+        .topping-visual::before {
+            content: '🤍';
+            font-size: 20px;
+        }
+
+        .cookie-label {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .cookie-input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .price-display {
+            background: linear-gradient(135deg, rgba(255, 235, 59, 0.4), rgba(255, 23, 68, 0.3));
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 28px;
+            border: 2px solid rgba(33, 150, 243, 0.6);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            color: #333;
+        }
+
+        /* Bulk Parser */
+        .bulk-section {
+            background: rgba(33, 150, 243, 0.25);
+            border: 2px solid rgba(33, 150, 243, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .bulk-title {
+            margin: 0 0 15px 0;
+            color: #e3f2fd;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .bulk-textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .bulk-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-parse {
+            background: linear-gradient(135deg, #2196f3, #ffeb3b);
+            flex: 1;
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #ff1744, #ff9800);
+            width: auto;
+        }
+
+        .parse-result {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .parse-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .parse-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #ffeb3b;
+        }
+
+        .parse-details {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .parse-totals {
+            background: rgba(255, 235, 59, 0.3);
+            border: 1px solid rgba(255, 235, 59, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        /* Statistics */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        body.aesthetic-dashboard .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px rgba(33, 150, 243, 0.3);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        body.aesthetic-dashboard .stat-value {
+            background: linear-gradient(45deg, #ff1744, #ffeb3b, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 28px;
+        }
+
+        /* Cookie Totals */
+        .cookie-totals {
+            background: rgba(255, 235, 59, 0.25);
+            border: 2px solid rgba(255, 235, 59, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        body.aesthetic-dashboard .cookie-totals {
+            background: linear-gradient(135deg, rgba(255, 235, 59, 0.4), rgba(255, 23, 68, 0.3));
+            border: 2px solid rgba(33, 150, 243, 0.6);
+            box-shadow: 0 8px 32px rgba(255, 23, 68, 0.2);
+        }
+
+        .totals-title {
+            margin: 0 0 20px 0;
+            color: #ffeb3b;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        body.aesthetic-dashboard .totals-title {
+            background: linear-gradient(45deg, #ff1744, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .total-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        body.aesthetic-dashboard .total-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .total-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .total-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffeb3b;
+        }
+
+        body.aesthetic-dashboard .total-value {
+            background: linear-gradient(45deg, #2196f3, #ff1744);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 22px;
+        }
+
+        /* Stock Management */
+        .stock-section {
+            background: rgba(156, 39, 176, 0.25);
+            border: 2px solid rgba(156, 39, 176, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        body.aesthetic-dashboard .stock-section {
+            background: linear-gradient(135deg, rgba(156, 39, 176, 0.4), rgba(233, 30, 99, 0.3));
+            border: 2px solid rgba(156, 39, 176, 0.6);
+            box-shadow: 0 8px 32px rgba(156, 39, 176, 0.2);
+        }
+
+        .stock-title {
+            margin: 0 0 20px 0;
+            color: #e1bee7;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        body.aesthetic-dashboard .stock-title {
+            background: linear-gradient(45deg, #e91e63, #9c27b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stock-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        body.aesthetic-dashboard .stock-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stock-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #e1bee7;
+        }
+
+        .stock-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .stock-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .btn-stock {
+            background: linear-gradient(135deg, #9c27b0, #e91e63);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-stock:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4);
+        }
+
+        .stock-display {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffeb3b;
+        }
+
+        body.aesthetic-dashboard .stock-display {
+            background: linear-gradient(45deg, #ffeb3b, #ff1744);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stock-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Customer Stock Display */
+        .customer-stock-dashboard {
+            background: rgba(33, 150, 243, 0.15);
+            border: 1px solid rgba(33, 150, 243, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        body.aesthetic-dashboard .customer-stock-dashboard {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.25), rgba(255, 23, 68, 0.15));
+            border: 2px solid rgba(33, 150, 243, 0.4);
+            box-shadow: 0 6px 25px rgba(33, 150, 243, 0.2);
+        }
+
+        .stock-dashboard-title {
+            margin: 0 0 15px 0;
+            color: #e3f2fd;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        body.aesthetic-dashboard .stock-dashboard-title {
+            background: linear-gradient(45deg, #2196f3, #ff1744);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .stock-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .stock-dashboard-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        body.aesthetic-dashboard .stock-dashboard-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stock-dashboard-visual {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 8px;
+            border-radius: 50%;
+            position: relative;
+            background: radial-gradient(circle, #ff1744, #2196f3);
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        .stock-dashboard-visual.milk-chocolate {
+            background: radial-gradient(circle, #ffeb3b, #ff1744);
+        }
+
+        .stock-dashboard-visual.double-chocolate {
+            background: radial-gradient(circle, #2196f3, #e91e63);
+        }
+
+        .stock-dashboard-visual.original {
+            background: radial-gradient(circle, #ff9800, #ffeb3b);
+        }
+
+        .stock-dashboard-label {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .stock-dashboard-count {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffeb3b;
+            transition: all 0.3s ease;
+        }
+
+        body.aesthetic-dashboard .stock-dashboard-count {
+            background: linear-gradient(45deg, #ffeb3b, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 22px;
+        }
+
+        .stock-dashboard-count.low-stock {
+            color: #ff9800 !important;
+            animation: pulse 2s infinite;
+        }
+
+        body.aesthetic-dashboard .stock-dashboard-count.low-stock {
+            background: #ff9800 !important;
+            -webkit-background-clip: unset !important;
+            -webkit-text-fill-color: unset !important;
+            background-clip: unset !important;
+            color: #ff9800 !important;
+        }
+
+        .stock-dashboard-count.out-of-stock {
+            color: #f44336 !important;
+            animation: pulse 2s infinite;
+        }
+
+        body.aesthetic-dashboard .stock-dashboard-count.out-of-stock {
+            background: #f44336 !important;
+            -webkit-background-clip: unset !important;
+            -webkit-text-fill-color: unset !important;
+            background-clip: unset !important;
+            color: #f44336 !important;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Customer Points Dashboard */
+        .points-dashboard {
+            background: rgba(255, 152, 0, 0.15);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        body.aesthetic-dashboard .points-dashboard {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.25), rgba(255, 193, 7, 0.15));
+            border: 2px solid rgba(255, 152, 0, 0.4);
+            box-shadow: 0 6px 25px rgba(255, 152, 0, 0.2);
+        }
+
+        .points-title {
+            margin: 0 0 15px 0;
+            color: #ffcc02;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        body.aesthetic-dashboard .points-title {
+            background: linear-gradient(45deg, #ff9800, #ffeb3b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .points-content {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .points-display {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .points-icon {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #ffeb3b, #ff9800);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #333;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+            animation: starGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes starGlow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3); }
+            50% { box-shadow: 0 6px 20px rgba(255, 235, 59, 0.5), 0 0 30px rgba(255, 235, 59, 0.2); }
+        }
+
+        .points-info {
+            text-align: left;
+        }
+
+        .points-current {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffeb3b;
+            line-height: 1;
+        }
+
+        body.aesthetic-dashboard .points-current {
+            background: linear-gradient(45deg, #ffeb3b, #ff9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 32px;
+        }
+
+        .points-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .points-redemption {
+            text-align: center;
+        }
+
+        .points-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .points-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9800, #ffeb3b);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .points-status {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffcc02;
+            margin-bottom: 10px;
+        }
+
+        body.aesthetic-dashboard .points-status {
+            background: linear-gradient(45deg, #ffeb3b, #ff5722);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn-redeem {
+            background: linear-gradient(135deg, #ff9800, #ffeb3b);
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-redeem:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn-redeem:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-redeem.can-redeem {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .points-info-text {
+            font-size: 12px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+
+        /* Cookie Stock Info */
+        .cookie-stock {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        .stock-low {
+            color: #ff5722;
+            font-weight: 600;
+        }
+
+        .stock-out {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .stock-normal {
+            color: #4caf50;
+        }
+
+        /* Orders List */
+        .orders-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .orders-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .order-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .order-card:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        body.aesthetic-dashboard .order-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(33, 150, 243, 0.2);
+        }
+
+        body.aesthetic-dashboard .order-card:hover {
+            transform: translateX(8px) translateY(-2px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
+            box-shadow: 0 8px 32px rgba(255, 23, 68, 0.3);
+        }
+
+        .order-card.delivered {
+            background: rgba(76, 175, 80, 0.25);
+            border-left-color: #4caf50;
+        }
+
+        .order-card.payment-received {
+            background: rgba(76, 175, 80, 0.4);
+            border: 2px solid rgba(76, 175, 80, 0.6);
+        }
+
+        .order-info {
+            flex-grow: 1;
+        }
+
+        .customer-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .order-detail {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 3px;
+        }
+
+        .buyer-id {
+            font-size: 12px;
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+
+        .order-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffeb3b;
+            margin-right: 15px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        body.aesthetic-dashboard .order-price {
+            background: linear-gradient(45deg, #ff1744, #2196f3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 22px;
+            text-shadow: none;
+        }
+
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delivered {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            color: white;
+        }
+
+        .btn-paid {
+            background: linear-gradient(135deg, #2196f3, #64b5f6);
+            color: white;
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #ff1744, #ef5350);
+            color: white;
+        }
+
+        .btn-undo {
+            background: linear-gradient(135deg, #ff9800, #ffb74d);
+            color: white;
+            font-size: 10px;
+            padding: 4px 8px;
+        }
+
+        /* Success Screen */
+        .success-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-message {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .order-summary {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        /* Info Sections */
+        .info-section {
+            background: rgba(33, 150, 243, 0.25);
+            border: 1px solid rgba(33, 150, 243, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .business-id-display {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        /* Commission Info */
+        .commission-section {
+            background: rgba(76, 175, 80, 0.25);
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        body.aesthetic-dashboard .commission-section {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.4), rgba(102, 187, 106, 0.3));
+            border: 2px solid rgba(76, 175, 80, 0.6);
+            box-shadow: 0 8px 32px rgba(76, 175, 80, 0.2);
+        }
+
+        .commission-title {
+            margin: 0 0 20px 0;
+            color: #c8e6c9;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        body.aesthetic-dashboard .commission-title {
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 20px;
+        }
+
+        .commission-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .commission-stat {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        body.aesthetic-dashboard .commission-stat {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .commission-stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #c8e6c9;
+        }
+
+        .commission-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4caf50;
+        }
+
+        body.aesthetic-dashboard .commission-stat-value {
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 28px;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            border-radius: 10px;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+            font-weight: 500;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: rgba(76, 175, 80, 0.95);
+        }
+
+        .notification.error {
+            background: rgba(244, 67, 54, 0.95);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .cookie-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .order-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .order-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .orders-header {
+                flex-direction: column;
+            }
+
+            .firebase-status {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 15px;
+            }
+
+            .points-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Firebase Status Indicator -->
+    <div id="firebaseStatus" class="firebase-status connecting">Firebase: Connecting...</div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">Cookie Orders System</div>
+        <div class="mode-toggle">
+            <button class="toggle-btn active" id="customerBtn">Customer</button>
+            <button class="toggle-btn" id="ownerBtn">Owner</button>
+            <button class="toggle-btn" id="runnerBtn">Runner</button>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div id="statusBar" class="status-bar">
+        Firebase Cloud Storage: Real-time sync enabled
+    </div>
+
+    <!-- Business Setup -->
+    <div id="businessSetup" class="form-section">
+        <div class="container">
+            <h2>Create Your Buyer ID</h2>
+            <div class="form-container">
+                <p style="margin-bottom: 20px; opacity: 0.9;">Create your unique Buyer ID to start ordering cookies</p>
+                <div style="display: flex; align-items: center;">
+                    <input type="text" id="businessIdInput" class="form-input" placeholder="Enter Buyer ID (e.g., BUYER-2024)">
+                    <button class="btn btn-small" id="generateIdBtn">Random</button>
+                </div>
+                <small style="opacity: 0.8;">Orders are synced to Firebase cloud database</small>
+                <button class="btn" id="setupBusinessBtn">Start Ordering</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Owner Login -->
+    <div id="ownerLogin" class="form-section hidden">
+        <div class="container">
+            <h2>Owner Access</h2>
+            <div class="form-container">
+                <p style="margin-bottom: 20px; opacity: 0.9;">Enter owner credentials to access dashboard</p>
+                <input type="text" id="ownerBusinessId" class="form-input" placeholder="Business ID">
+                <input type="password" id="ownerPassword" class="form-input" placeholder="Password">
+                <button class="btn btn-secondary" id="ownerLoginBtn">Access Dashboard</button>
+                <button class="btn btn-back" id="backToCustomerBtn">Back to Customer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Runner Login -->
+    <div id="runnerLogin" class="form-section hidden">
+        <div class="container">
+            <h2>Runner Access</h2>
+            <div class="form-container">
+                <p style="margin-bottom: 20px; opacity: 0.9;">Enter runner credentials to access dashboard</p>
+                <input type="text" id="runnerBusinessId" class="form-input" placeholder="Business ID">
+                <input type="password" id="runnerPassword" class="form-input" placeholder="Password">
+                <button class="btn btn-secondary" id="runnerLoginBtn">Access Dashboard</button>
+                <button class="btn btn-back" id="backToCustomerFromRunnerBtn">Back to Customer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Business Info -->
+    <div id="businessInfo" class="info-section hidden">
+        <div class="info-title">Firebase Cloud Storage Active</div>
+        <p style="margin-bottom: 10px;"><strong>Buyer ID:</strong> <span class="business-id-display" id="buyerId"></span></p>
+        <p style="font-size: 14px; opacity: 0.9; margin: 0;">Your orders are synced to the cloud in real-time</p>
+    </div>
+
+    <!-- Owner Business Info -->
+    <div id="ownerBusinessInfo" class="info-section hidden" style="background: rgba(233, 30, 99, 0.25); border-color: rgba(233, 30, 99, 0.5);">
+        <div class="info-title">Owner Dashboard Active</div>
+        <p style="margin-bottom: 10px;"><strong>Business ID:</strong> <span class="business-id-display" id="ownerBusinessIdDisplay"></span></p>
+        <p style="font-size: 14px; opacity: 0.9; margin: 0;">All orders from Firebase cloud database are visible here</p>
+    </div>
+
+    <!-- Runner Business Info -->
+    <div id="runnerBusinessInfo" class="info-section hidden" style="background: rgba(76, 175, 80, 0.25); border-color: rgba(76, 175, 80, 0.5);">
+        <div class="info-title">Runner Dashboard Active</div>
+        <p style="margin-bottom: 10px;"><strong>Business ID:</strong> <span class="business-id-display" id="runnerBusinessIdDisplay"></span></p>
+        <p style="font-size: 14px; opacity: 0.9; margin: 0;">Track orders and earn commission (RM0.25 per cookie)</p>
+    </div>
+
+    <!-- Customer Interface -->
+    <div id="customerInterface" class="hidden">
+        <div class="container">
+            <h1>Place Your Cookie Order</h1>
+            
+            <!-- Current Stock Dashboard -->
+            <div class="customer-stock-dashboard">
+                <h3 class="stock-dashboard-title">Current Stock Levels</h3>
+                <div class="stock-dashboard-grid">
+                    <div class="stock-dashboard-item">
+                        <div class="stock-dashboard-visual milk-chocolate"></div>
+                        <div class="stock-dashboard-label">Milk Chocolate</div>
+                        <div class="stock-dashboard-count" id="customerMcStock">50</div>
+                    </div>
+                    <div class="stock-dashboard-item">
+                        <div class="stock-dashboard-visual double-chocolate"></div>
+                        <div class="stock-dashboard-label">Double Chocolate</div>
+                        <div class="stock-dashboard-count" id="customerDcStock">50</div>
+                    </div>
+                    <div class="stock-dashboard-item">
+                        <div class="stock-dashboard-visual original"></div>
+                        <div class="stock-dashboard-label">Original</div>
+                        <div class="stock-dashboard-count" id="customerOrStock">50</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Points Dashboard -->
+            <div class="points-dashboard">
+                <h3 class="points-title">Your Reward Points & Rank</h3>
+                <div class="points-content">
+                    <div class="points-display">
+                        <div class="points-icon">★</div>
+                        <div class="points-info">
+                            <div class="points-current" id="customerPoints">0</div>
+                            <div class="points-label" id="customerRank">New Member</div>
+                        </div>
+                    </div>
+                    <div class="points-redemption">
+                        <div class="points-progress">
+                            <div class="points-progress-bar" id="pointsProgress"></div>
+                        </div>
+                        <div class="points-status" id="pointsStatus">10 more points for free cookie</div>
+                        <button class="btn-redeem" id="redeemBtn" disabled>Redeem Free Cookie (10 pts)</button>
+                    </div>
+                </div>
+                <div class="points-info-text">
+                    Earn 2 points per order • 10 points = 1 free cookie<br>
+                    Ranks: Platinum (5+ pts), Gold (15+ pts), Silver (20+ pts)
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Your Name:</label>
+                <input type="text" id="customerName" class="form-input" placeholder="Enter your name">
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Room Number:</label>
+                <input type="text" id="customerRoom" class="form-input" placeholder="e.g., C001, C324">
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Select Cookie Types & Quantities:</label>
+                
+                <!-- Pricing Guide -->
+                <div style="background: rgba(255, 235, 59, 0.15); border: 1px solid rgba(255, 235, 59, 0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #ffeb3b;">Bundle Pricing Guide:</div>
+                    <div style="font-size: 13px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
+                        <div>1 cookie: RM2.00</div>
+                        <div>2 cookies: RM3.00</div>
+                        <div>3 cookies: RM5.00</div>
+                        <div>4 cookies: RM6.00</div>
+                        <div>5 cookies: RM8.00</div>
+                        <div>6 cookies: RM9.00</div>
+                        <div>7 cookies: RM11.00</div>
+                        <div>8 cookies: RM12.00</div>
+                        <div>9 cookies: RM14.00</div>
+                        <div>10 cookies: RM15.00</div>
+                    </div>
+                    <div style="font-size: 12px; margin-top: 8px; opacity: 0.8;">
+                        Pattern continues: Odd quantities +RM2, Even quantities +RM1 from previous price
+                    </div>
+                </div>
+                
+                <div class="cookie-grid">
+                    <div class="cookie-card">
+                        <div class="cookie-visual milk-chocolate"></div>
+                        <div class="cookie-label">Milk Chocolate</div>
+                        <div class="cookie-stock" id="mcStockInfo">Available: 50</div>
+                        <input type="number" id="mcQty" class="cookie-input" min="0" max="20" value="0">
+                    </div>
+                    <div class="cookie-card">
+                        <div class="cookie-visual double-chocolate"></div>
+                        <div class="cookie-label">Double Chocolate</div>
+                        <div class="cookie-stock" id="dcStockInfo">Available: 50</div>
+                        <input type="number" id="dcQty" class="cookie-input" min="0" max="20" value="0">
+                    </div>
+                    <div class="cookie-card">
+                        <div class="cookie-visual original"></div>
+                        <div class="cookie-label">Original</div>
+                        <div class="cookie-stock" id="orStockInfo">Available: 50</div>
+                        <input type="number" id="orQty" class="cookie-input" min="0" max="20" value="0">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="topping-option" onclick="toggleTopping()">
+                <div class="topping-visual"></div>
+                <div>
+                    <input type="checkbox" id="wcTopping" class="topping-checkbox" style="display: none;">
+                    <label for="wcTopping" style="font-weight: 600; font-size: 16px; color: #333;">Add White Chocolate Topping (+RM1.00)</label>
+                    <div style="font-size: 13px; color: #666; margin-top: 5px;">White chocolate topping for extra sweetness</div>
+                </div>
+            </div>
+            
+            <div class="price-display" id="priceDisplay">
+                Total: RM0.00
+            </div>
+            
+            <button class="btn" id="submitBtn" style="font-size: 18px; padding: 20px;">
+                Place Order
+            </button>
+        </div>
+    </div>
+
+    <!-- Order Success -->
+    <div id="orderSuccess" class="success-screen hidden">
+        <div class="container">
+            <div class="success-message">Order Placed Successfully!</div>
+            <p>Your order has been received and synced to the cloud database.</p>
+            <div id="orderSummary" class="order-summary"></div>
+            <button class="btn" id="anotherOrderBtn">Place Another Order</button>
+        </div>
+    </div>
+
+    <!-- Owner Dashboard -->
+    <div id="ownerDashboard" class="hidden">
+        <div class="container">
+            <h1>Owner Dashboard</h1>
+            
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value" id="totalOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value">RM<span id="totalRevenue">0.00</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending Orders</div>
+                    <div class="stat-value" id="pendingOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed Orders</div>
+                    <div class="stat-value" id="completedOrders">0</div>
+                </div>
+            </div>
+
+            <!-- Cookie Totals -->
+            <div class="cookie-totals">
+                <h3 class="totals-title">Cookie Order Totals</h3>
+                <div class="totals-grid">
+                    <div class="total-item">
+                        <div class="total-label">Milk Chocolate</div>
+                        <div class="total-value" id="totalMC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Double Chocolate</div>
+                        <div class="total-value" id="totalDC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Original</div>
+                        <div class="total-value" id="totalOR">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">WC Toppings</div>
+                        <div class="total-value" id="totalWC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Total Pieces</div>
+                        <div class="total-value" id="totalPieces">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Management -->
+            <div class="stock-section">
+                <h3 class="stock-title">Inventory Management</h3>
+                <div class="stock-grid">
+                    <div class="stock-item">
+                        <div class="stock-label">Milk Chocolate</div>
+                        <div class="stock-controls">
+                            <input type="number" id="mcStockInput" class="stock-input" min="0" value="50">
+                            <button class="btn-stock" onclick="updateStock('mc')">Set</button>
+                        </div>
+                        <div class="stock-display" id="mcStockDisplay">Current: 50</div>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-label">Double Chocolate</div>
+                        <div class="stock-controls">
+                            <input type="number" id="dcStockInput" class="stock-input" min="0" value="50">
+                            <button class="btn-stock" onclick="updateStock('dc')">Set</button>
+                        </div>
+                        <div class="stock-display" id="dcStockDisplay">Current: 50</div>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-label">Original</div>
+                        <div class="stock-controls">
+                            <input type="number" id="orStockInput" class="stock-input" min="0" value="50">
+                            <button class="btn-stock" onclick="updateStock('or')">Set</button>
+                        </div>
+                        <div class="stock-display" id="orStockDisplay">Current: 50</div>
+                    </div>
+                </div>
+                <div class="stock-actions">
+                    <button class="btn-stock" onclick="resetAllStock()">Reset All to 50</button>
+                    <button class="btn-stock" onclick="clearAllStock()">Clear All Stock</button>
+                </div>
+            </div>
+
+            <!-- Bulk Order Parser -->
+            <div class="bulk-section">
+                <h3 class="bulk-title">Bulk Order Parser</h3>
+                <textarea id="bulkTextarea" class="bulk-textarea" placeholder="Paste bulk orders here...&#10;Example format:&#10;John - C001 - MC:2, DC:1, WC topping&#10;Mary - A123 - OR:3, MC:1"></textarea>
+                <div class="bulk-buttons">
+                    <button class="btn btn-parse" onclick="parseBulkOrders()">Parse Orders</button>
+                    <button class="btn btn-clear" onclick="clearBulkOrders()">Clear</button>
+                </div>
+                <div id="parseResult" class="parse-result hidden"></div>
+            </div>
+
+            <!-- Orders List -->
+            <div class="orders-header">
+                <h3>All Orders</h3>
+                <div class="orders-actions">
+                    <button class="btn btn-small" onclick="clearAllOrders()">Clear All</button>
+                    <button class="btn btn-small" onclick="exportOrders()">Export CSV</button>
+                </div>
+            </div>
+            <div id="ordersList"></div>
+        </div>
+    </div>
+
+    <!-- Runner Dashboard -->
+    <div id="runnerDashboard" class="hidden">
+        <div class="container">
+            <h1>Runner Dashboard</h1>
+            
+            <!-- Commission Stats -->
+            <div class="commission-section">
+                <h3 class="commission-title">Commission Earnings</h3>
+                <div class="commission-stats">
+                    <div class="commission-stat">
+                        <div class="commission-stat-label">Total Cookies Delivered</div>
+                        <div class="commission-stat-value" id="runnerTotalCookies">0</div>
+                    </div>
+                    <div class="commission-stat">
+                        <div class="commission-stat-label">Commission Earned</div>
+                        <div class="commission-stat-value">RM<span id="runnerCommission">0.00</span></div>
+                    </div>
+                    <div class="commission-stat">
+                        <div class="commission-stat-label">Pending Deliveries</div>
+                        <div class="commission-stat-value" id="runnerPendingDeliveries">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value" id="runnerTotalOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value">RM<span id="runnerTotalRevenue">0.00</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending Orders</div>
+                    <div class="stat-value" id="runnerPendingOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed Orders</div>
+                    <div class="stat-value" id="runnerCompletedOrders">0</div>
+                </div>
+            </div>
+
+            <!-- Cookie Totals -->
+            <div class="cookie-totals">
+                <h3 class="totals-title">Cookie Order Totals</h3>
+                <div class="totals-grid">
+                    <div class="total-item">
+                        <div class="total-label">Milk Chocolate</div>
+                        <div class="total-value" id="runnerTotalMC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Double Chocolate</div>
+                        <div class="total-value" id="runnerTotalDC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Original</div>
+                        <div class="total-value" id="runnerTotalOR">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">WC Toppings</div>
+                        <div class="total-value" id="runnerTotalWC">0</div>
+                    </div>
+                    <div class="total-item">
+                        <div class="total-label">Total Pieces</div>
+                        <div class="total-value" id="runnerTotalPieces">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Management -->
+            <div class="stock-section">
+                <h3 class="stock-title">Inventory Management</h3>
+                <div class="stock-grid">
+                    <div class="stock-item">
+                        <div class="stock-label">Milk Chocolate</div>
+                        <div class="stock-controls">
+                            <input type="number" id="runnerMcStockInput" class="stock-input" min="0" value="50">
+                            <button class="btn-stock" onclick="updateRunnerStock('mc')">Set</button>
+                        </div>
+                        <div class="stock-display" id="runnerMcStockDisplay">Current: 50</div>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-label">Double Chocolate</div>
+                        <div class="stock-controls">
+                            <input type="number" id="runnerDcStockInput" class="stock-input" min="0" value="50">
+                            <button class="btn-stock" onclick="updateRunnerStock('dc')">Set</button>
+                        </div>
+                        <div class="stock-display" id="runnerDcStockDisplay">Current: 50</div>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-label">Original</div>
+                        <div class="stock-controls">
+                            <input type="number" id="runnerOrStockInput" class="stock-input" min="0" value="50">
+                            <button class="btn-stock" onclick="updateRunnerStock('or')">Set</button>
+                        </div>
+                        <div class="stock-display" id="runnerOrStockDisplay">Current: 50</div>
+                    </div>
+                </div>
+                <div class="stock-actions">
+                    <button class="btn-stock" onclick="resetAllRunnerStock()">Reset All to 50</button>
+                    <button class="btn-stock" onclick="clearAllRunnerStock()">Clear All Stock</button>
+                </div>
+            </div>
+
+            <!-- Bulk Order Parser -->
+            <div class="bulk-section">
+                <h3 class="bulk-title">Bulk Order Parser</h3>
+                <textarea id="runnerBulkTextarea" class="bulk-textarea" placeholder="Paste bulk orders here...&#10;Example format:&#10;John - C001 - MC:2, DC:1, WC topping&#10;Mary - A123 - OR:3, MC:1"></textarea>
+                <div class="bulk-buttons">
+                    <button class="btn btn-parse" onclick="parseRunnerBulkOrders()">Parse Orders</button>
+                    <button class="btn btn-clear" onclick="clearRunnerBulkOrders()">Clear</button>
+                </div>
+                <div id="runnerParseResult" class="parse-result hidden"></div>
+            </div>
+
+            <!-- Orders List -->
+            <div class="orders-header">
+                <h3>All Orders</h3>
+                <div class="orders-actions">
+                    <button class="btn btn-small" onclick="clearAllRunnerOrders()">Clear All</button>
+                    <button class="btn btn-small" onclick="exportRunnerOrders()">Export CSV</button>
+                </div>
+            </div>
+            <div id="runnerOrdersList"></div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDummyKey123456789",
+            authDomain: "cookie-orders-demo.firebaseapp.com",
+            databaseURL: "https://cookie-orders-demo-default-rtdb.firebaseio.com",
+            projectId: "cookie-orders-demo",
+            storageBucket: "cookie-orders-demo.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456789012"
+        };
+
+        // Initialize Firebase (REAL) ✅
+let database;
+let auth;
+let isConnected = false;
+
+try {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.firestore();
+    auth = firebase.auth();
+    isConnected = true;
+    
+    console.log('Firebase connected successfully!');
+    updateFirebaseStatus('connected');
+    
+    // AUTO USER SYNC dengan BUYER ID
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            const buyerId = currentBusinessId || 'buyer_' + Date.now();
+            const userRef = database.collection('users').doc(buyerId);
+            
+            userRef.set({
+                buyerId: buyerId,
+                name: user.displayName || "Customer",
+                email: user.email,
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                orders: [],
+                customerPoints: customerPoints || 0
+            }, { merge: true });
+            
+            userRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    console.log("Buyer data synced:", doc.data());
+                }
+            });
+        }
+    });
+    
+} catch (error) {
+    console.error('Firebase initialization error:', error);
+    updateFirebaseStatus('disconnected');
+    isConnected = false;
+}
+
+        function updateFirebaseStatus(status) {
+            const statusEl = document.getElementById('firebaseStatus');
+            statusEl.className = `firebase-status ${status}`;
+            statusEl.textContent = `Firebase: ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+        }
+
+        // Global variables
+        let currentBusinessId = '';
+        let currentMode = 'customer';
+        let orders = JSON.parse(localStorage.getItem('cookieOrders') || '[]');
+        let stock = JSON.parse(localStorage.getItem('cookieStock') || '{"mc": 50, "dc": 50, "or": 50}');
+        let customerPoints = JSON.parse(localStorage.getItem('customerPoints') || '{}');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updateUI();
+            updateStock();
+            updateCustomerStockDisplay();
+        });
+
+
+
+        function setupEventListeners() {
+            // Mode toggles
+            document.getElementById('customerBtn').addEventListener('click', () => switchMode('customer'));
+            document.getElementById('ownerBtn').addEventListener('click', () => switchMode('owner'));
+            document.getElementById('runnerBtn').addEventListener('click', () => switchMode('runner'));
+
+            // Business setup
+            document.getElementById('generateIdBtn').addEventListener('click', generateRandomId);
+            document.getElementById('setupBusinessBtn').addEventListener('click', setupBusiness);
+
+            // Login buttons
+            document.getElementById('ownerLoginBtn').addEventListener('click', ownerLogin);
+            document.getElementById('runnerLoginBtn').addEventListener('click', runnerLogin);
+            document.getElementById('backToCustomerBtn').addEventListener('click', () => switchMode('customer'));
+            document.getElementById('backToCustomerFromRunnerBtn').addEventListener('click', () => switchMode('customer'));
+
+            // Customer interface
+            document.getElementById('submitBtn').addEventListener('click', placeOrder);
+            document.getElementById('anotherOrderBtn').addEventListener('click', () => showScreen('customerInterface'));
+            document.getElementById('redeemBtn').addEventListener('click', redeemPoints);
+
+            // Price calculation
+            ['mcQty', 'dcQty', 'orQty'].forEach(id => {
+                document.getElementById(id).addEventListener('input', calculatePrice);
+            });
+  
+            // Firebase Real Setup (ADD NI SEBELUM STOCK MANAGEMENT)
+            try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.firestore();
+            auth = firebase.auth();
+            isConnected = true;
+    
+           console.log('Firebase connected!');
+           updateFirebaseStatus('connected');
+    
+           firebase.auth().onAuthStateChanged((user) => {
+           if (user) {
+            const buyerId = currentBusinessId || 'buyer_' + Date.now();
+            const userRef = database.collection('users').doc(buyerId);
+            
+            userRef.set({
+                buyerId: buyerId,
+                name: user.displayName || "Customer",
+                customerPoints: customerPoints || 0,
+                orders: orders || []
+            }, { merge: true });
+           }
+             });
+    
+           } catch (error) {
+          console.error('Firebase error:', error);
+          updateFirebaseStatus('disconnected');
+          }
+
+
+            // Stock management
+            updateStock();
+            updateCustomerStockDisplay();
+        }
+
+        function switchMode(mode) {
+            document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(mode + 'Btn').classList.add('active');
+            
+            currentMode = mode;
+            
+            if (mode === 'customer') {
+                if (!currentBusinessId) {
+                    showScreen('businessSetup');
+                } else {
+                    showScreen('customerInterface');
+                    document.getElementById('businessInfo').classList.remove('hidden');
+                    document.getElementById('buyerId').textContent = currentBusinessId;
+                }
+                document.body.classList.add('aesthetic-dashboard');
+            } else if (mode === 'owner') {
+                showScreen('ownerLogin');
+                document.body.classList.add('aesthetic-dashboard');
+            } else if (mode === 'runner') {
+                showScreen('runnerLogin');
+                document.body.classList.add('aesthetic-dashboard');
+            }
+        }
+
+        function showScreen(screenId) {
+            const screens = ['businessSetup', 'customerInterface', 'orderSuccess', 'ownerLogin', 'ownerDashboard', 'runnerLogin', 'runnerDashboard'];
+            screens.forEach(screen => {
+                document.getElementById(screen).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+
+            const infos = ['businessInfo', 'ownerBusinessInfo', 'runnerBusinessInfo'];
+            infos.forEach(info => {
+                document.getElementById(info).classList.add('hidden');
+            });
+        }
+
+        function generateRandomId() {
+            const timestamp = Date.now().toString().slice(-4);
+            const randomId = `BUYER-${timestamp}`;
+            document.getElementById('businessIdInput').value = randomId;
+        }
+
+        function setupBusiness() {
+            const businessId = document.getElementById('businessIdInput').value.trim();
+            if (!businessId) {
+                showNotification('Please enter a Buyer ID', 'error');
+                return;
+            }
+            
+            currentBusinessId = businessId;
+            localStorage.setItem('currentBusinessId', businessId);
+            
+            showScreen('customerInterface');
+            document.getElementById('businessInfo').classList.remove('hidden');
+            document.getElementById('buyerId').textContent = businessId;
+            
+            updateCustomerPoints();
+            showNotification('Buyer ID created successfully!', 'success');
+        }
+
+        function ownerLogin() {
+            const businessId = document.getElementById('ownerBusinessId').value.trim();
+            const password = document.getElementById('ownerPassword').value.trim();
+            
+            if (!businessId || !password) {
+                showNotification('Please enter both Business ID and Password', 'error');
+                return;
+            }
+            
+            // Simple authentication - in real app, use proper auth
+            if (businessId && password) {
+                showScreen('ownerDashboard');
+                document.getElementById('ownerBusinessInfo').classList.remove('hidden');
+                document.getElementById('ownerBusinessIdDisplay').textContent = businessId;
+                updateOwnerDashboard();
+                showNotification('Owner access granted!', 'success');
+            } else {
+                showNotification('Invalid credentials', 'error');
+            }
+        }
+
+        function runnerLogin() {
+            const businessId = document.getElementById('runnerBusinessId').value.trim();
+            const password = document.getElementById('runnerPassword').value.trim();
+            
+            if (businessId === 'RUNNER-3549' && password === 'RUNNER-3549') {
+                showScreen('runnerDashboard');
+                document.getElementById('runnerBusinessInfo').classList.remove('hidden');
+                document.getElementById('runnerBusinessIdDisplay').textContent = businessId;
+                updateRunnerDashboard();
+                showNotification('Runner access granted!', 'success');
+            } else {
+                showNotification('Invalid runner credentials', 'error');
+            }
+        }
+
+        function toggleTopping() {
+            const toppingOption = document.querySelector('.topping-option');
+            const checkbox = document.getElementById('wcTopping');
+            
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                toppingOption.classList.add('selected');
+            } else {
+                toppingOption.classList.remove('selected');
+            }
+            
+            calculatePrice();
+        }
+
+        function calculatePrice() {
+            const mcQty = parseInt(document.getElementById('mcQty').value) || 0;
+            const dcQty = parseInt(document.getElementById('dcQty').value) || 0;
+            const orQty = parseInt(document.getElementById('orQty').value) || 0;
+            const wcTopping = document.getElementById('wcTopping').checked;
+            
+            const totalCookies = mcQty + dcQty + orQty;
+            
+            let price = 0;
+            if (totalCookies > 0) {
+                // Bundle pricing logic
+                if (totalCookies === 1) price = 2;
+                else if (totalCookies === 2) price = 3;
+                else {
+                    // Pattern: odd quantities +RM2, even quantities +RM1
+                    let currentPrice = 3; // Base price for 2 cookies
+                    for (let i = 3; i <= totalCookies; i++) {
+                        if (i % 2 === 1) { // Odd number
+                            currentPrice += 2;
+                        } else { // Even number
+                            currentPrice += 1;
+                        }
+                    }
+                    price = currentPrice;
+                }
+                
+                if (wcTopping) {
+                    price += 1;
+                }
+            }
+            
+            document.getElementById('priceDisplay').textContent = `Total: RM${price.toFixed(2)}`;
+        }
+
+        function placeOrder() {
+            const name = document.getElementById('customerName').value.trim();
+            const room = document.getElementById('customerRoom').value.trim();
+            const mcQty = parseInt(document.getElementById('mcQty').value) || 0;
+            const dcQty = parseInt(document.getElementById('dcQty').value) || 0;
+            const orQty = parseInt(document.getElementById('orQty').value) || 0;
+            const wcTopping = document.getElementById('wcTopping').checked;
+            
+            if (!name || !room) {
+                showNotification('Please fill in your name and room number', 'error');
+                return;
+            }
+            
+            const totalCookies = mcQty + dcQty + orQty;
+            if (totalCookies === 0) {
+                showNotification('Please select at least one cookie', 'error');
+                return;
+            }
+
+            // Check stock availability
+            if (mcQty > stock.mc || dcQty > stock.dc || orQty > stock.or) {
+                showNotification('Not enough stock available', 'error');
+                return;
+            }
+            
+            let price = 0;
+            if (totalCookies === 1) price = 2;
+            else if (totalCookies === 2) price = 3;
+            else {
+                let currentPrice = 3;
+                for (let i = 3; i <= totalCookies; i++) {
+                    if (i % 2 === 1) {
+                        currentPrice += 2;
+                    } else {
+                        currentPrice += 1;
+                    }
+                }
+                price = currentPrice;
+            }
+            
+            if (wcTopping) {
+                price += 1;
+            }
+            
+            const order = {
+                id: Date.now(),
+                name: name,
+                room: room,
+                buyerId: currentBusinessId,
+                mcQty: mcQty,
+                dcQty: dcQty,
+                orQty: orQty,
+                wcTopping: wcTopping,
+                totalCookies: totalCookies,
+                price: price,
+                timestamp: new Date().toISOString(),
+                delivered: false,
+                paid: false
+            };
+            
+            // Update stock
+            stock.mc -= mcQty;
+            stock.dc -= dcQty;
+            stock.or -= orQty;
+            localStorage.setItem('cookieStock', JSON.stringify(stock));
+            
+            orders.push(order);
+            localStorage.setItem('cookieOrders', JSON.stringify(orders));
+            
+            // Award points (2 points per order)
+            if (!customerPoints[currentBusinessId]) {
+                customerPoints[currentBusinessId] = 0;
+            }
+            customerPoints[currentBusinessId] += 2;
+            localStorage.setItem('customerPoints', JSON.stringify(customerPoints));
+            
+            updateStock();
+            updateCustomerStockDisplay();
+            showOrderSuccess(order);
+        }
+
+        function showOrderSuccess(order) {
+            let summary = `<strong>${order.name}</strong> - Room ${order.room}<br>`;
+            summary += `Buyer ID: ${order.buyerId}<br><br>`;
+            
+            if (order.mcQty > 0) summary += `Milk Chocolate: ${order.mcQty}<br>`;
+            if (order.dcQty > 0) summary += `Double Chocolate: ${order.dcQty}<br>`;
+            if (order.orQty > 0) summary += `Original: ${order.orQty}<br>`;
+            if (order.wcTopping) summary += `White Chocolate Topping: Yes<br>`;
+            
+            summary += `<br>Total Cookies: ${order.totalCookies}<br>`;
+            summary += `<strong>Total Price: RM${order.price.toFixed(2)}</strong>`;
+            
+            document.getElementById('orderSummary').innerHTML = summary;
+            showScreen('orderSuccess');
+            
+            // Reset form
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerRoom').value = '';
+            document.getElementById('mcQty').value = '0';
+            document.getElementById('dcQty').value = '0';
+            document.getElementById('orQty').value = '0';
+            document.getElementById('wcTopping').checked = false;
+            document.querySelector('.topping-option').classList.remove('selected');
+            calculatePrice();
+        }
+
+        function updateCustomerPoints() {
+            const points = customerPoints[currentBusinessId] || 0;
+            document.getElementById('customerPoints').textContent = points;
+            
+            // Update rank based on points
+            let rank = 'New Member';
+            if (points >= 20) rank = 'Silver';
+            else if (points >= 15) rank = 'Gold';
+            else if (points >= 5) rank = 'Platinum';
+            
+            document.getElementById('customerRank').textContent = rank;
+            
+            // Update progress bar and redemption status
+            const pointsForFree = 10;
+            const progress = (points % pointsForFree) / pointsForFree * 100;
+            document.getElementById('pointsProgress').style.width = progress + '%';
+            
+            const redeemBtn = document.getElementById('redeemBtn');
+            if (points >= pointsForFree) {
+                const availableRedemptions = Math.floor(points / pointsForFree);
+                document.getElementById('pointsStatus').textContent = `${availableRedemptions} free cookie${availableRedemptions > 1 ? 's' : ''} available!`;
+                redeemBtn.disabled = false;
+                redeemBtn.classList.add('can-redeem');
+                redeemBtn.textContent = `Redeem Free Cookie (10 pts)`;
+            } else {
+                const needed = pointsForFree - (points % pointsForFree);
+                document.getElementById('pointsStatus').textContent = `${needed} more points for free cookie`;
+                redeemBtn.disabled = true;
+                redeemBtn.classList.remove('can-redeem');
+            }
+        }
+
+        function redeemPoints() {
+            const points = customerPoints[currentBusinessId] || 0;
+            if (points >= 10) {
+                customerPoints[currentBusinessId] -= 10;
+                localStorage.setItem('customerPoints', JSON.stringify(customerPoints));
+                
+                // Create free cookie order
+                const freeOrder = {
+                    id: Date.now(),
+                    name: 'Point Redemption',
+                    room: 'N/A',
+                    buyerId: currentBusinessId,
+                    mcQty: 1,
+                    dcQty: 0,
+                    orQty: 0,
+                    wcTopping: false,
+                    totalCookies: 1,
+                    price: 0,
+                    timestamp: new Date().toISOString(),
+                    delivered: false,
+                    paid: true,
+                    isRedemption: true
+                };
+                
+                orders.push(freeOrder);
+                localStorage.setItem('cookieOrders', JSON.stringify(orders));
+                
+                updateCustomerPoints();
+                showNotification('Free cookie redeemed successfully!', 'success');
+            }
+        }
+
+        function updateStock() {
+            updateCustomerStockDisplay();
+            
+            if (document.getElementById('mcStockInput')) {
+                document.getElementById('mcStockInput').value = stock.mc;
+                document.getElementById('dcStockInput').value = stock.dc;
+                document.getElementById('orStockInput').value = stock.or;
+                document.getElementById('mcStockDisplay').textContent = `Current: ${stock.mc}`;
+                document.getElementById('dcStockDisplay').textContent = `Current: ${stock.dc}`;
+                document.getElementById('orStockDisplay').textContent = `Current: ${stock.or}`;
+            }
+            
+            if (document.getElementById('runnerMcStockInput')) {
+                document.getElementById('runnerMcStockInput').value = stock.mc;
+                document.getElementById('runnerDcStockInput').value = stock.dc;
+                document.getElementById('runnerOrStockInput').value = stock.or;
+                document.getElementById('runnerMcStockDisplay').textContent = `Current: ${stock.mc}`;
+                document.getElementById('runnerDcStockDisplay').textContent = `Current: ${stock.dc}`;
+                document.getElementById('runnerOrStockDisplay').textContent = `Current: ${stock.or}`;
+            }
+        }
+
+        function updateCustomerStockDisplay() {
+            const mcEl = document.getElementById('customerMcStock');
+            const dcEl = document.getElementById('customerDcStock');
+            const orEl = document.getElementById('customerOrStock');
+            
+            if (mcEl) {
+                mcEl.textContent = stock.mc;
+                mcEl.className = 'stock-dashboard-count';
+                if (stock.mc === 0) mcEl.classList.add('out-of-stock');
+                else if (stock.mc <= 10) mcEl.classList.add('low-stock');
+            }
+            
+            if (dcEl) {
+                dcEl.textContent = stock.dc;
+                dcEl.className = 'stock-dashboard-count';
+                if (stock.dc === 0) dcEl.classList.add('out-of-stock');
+                else if (stock.dc <= 10) dcEl.classList.add('low-stock');
+            }
+            
+            if (orEl) {
+                orEl.textContent = stock.or;
+                orEl.className = 'stock-dashboard-count';
+                if (stock.or === 0) orEl.classList.add('out-of-stock');
+                else if (stock.or <= 10) orEl.classList.add('low-stock');
+            }
+            
+            // Update cookie cards stock info
+            if (document.getElementById('mcStockInfo')) {
+                document.getElementById('mcStockInfo').textContent = `Available: ${stock.mc}`;
+                document.getElementById('mcStockInfo').className = 'cookie-stock ' + getStockClass(stock.mc);
+                
+                document.getElementById('dcStockInfo').textContent = `Available: ${stock.dc}`;
+                document.getElementById('dcStockInfo').className = 'cookie-stock ' + getStockClass(stock.dc);
+                
+                document.getElementById('orStockInfo').textContent = `Available: ${stock.or}`;
+                document.getElementById('orStockInfo').className = 'cookie-stock ' + getStockClass(stock.or);
+                
+                // Update max values for inputs
+                document.getElementById('mcQty').max = stock.mc;
+                document.getElementById('dcQty').max = stock.dc;
+                document.getElementById('orQty').max = stock.or;
+            }
+        }
+
+        function getStockClass(stockLevel) {
+            if (stockLevel === 0) return 'stock-out';
+            if (stockLevel <= 10) return 'stock-low';
+            return 'stock-normal';
+        }
+
+        function updateStock(type) {
+            const newValue = parseInt(document.getElementById(type + 'StockInput').value) || 0;
+            stock[type] = newValue;
+            localStorage.setItem('cookieStock', JSON.stringify(stock));
+            updateStock();
+            showNotification('Stock updated successfully!', 'success');
+        }
+
+        function updateRunnerStock(type) {
+            const newValue = parseInt(document.getElementById('runner' + type.charAt(0).toUpperCase() + type.slice(1) + 'StockInput').value) || 0;
+            stock[type] = newValue;
+            localStorage.setItem('cookieStock', JSON.stringify(stock));
+            updateStock();
+            showNotification('Stock updated successfully!', 'success');
+        }
+
+        function resetAllStock() {
+            stock = { mc: 50, dc: 50, or: 50 };
+            localStorage.setItem('cookieStock', JSON.stringify(stock));
+            updateStock();
+            showNotification('All stock reset to 50!', 'success');
+        }
+
+        function resetAllRunnerStock() {
+            stock = { mc: 50, dc: 50, or: 50 };
+            localStorage.setItem('cookieStock', JSON.stringify(stock));
+            updateStock();
+            showNotification('All stock reset to 50!', 'success');
+        }
+
+        function clearAllStock() {
+            stock = { mc: 0, dc: 0, or: 0 };
+            localStorage.setItem('cookieStock', JSON.stringify(stock));
+            updateStock();
+            showNotification('All stock cleared!', 'success');
+        }
+
+        function clearAllRunnerStock() {
+            stock = { mc: 0, dc: 0, or: 0 };
+            localStorage.setItem('cookieStock', JSON.stringify(stock));
+            updateStock();
+            showNotification('All stock cleared!', 'success');
+        }
+
+        function updateOwnerDashboard() {
+            // Statistics
+            document.getElementById('totalOrders').textContent = orders.length;
+            document.getElementById('pendingOrders').textContent = orders.filter(o => !o.delivered).length;
+            document.getElementById('completedOrders').textContent = orders.filter(o => o.delivered).length;
+            
+            const totalRevenue = orders.reduce((sum, order) => sum + order.price, 0);
+            document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2);
+            
+            // Cookie totals
+            const totals = orders.reduce((acc, order) => {
+                acc.mc += order.mcQty;
+                acc.dc += order.dcQty;
+                acc.or += order.orQty;
+                if (order.wcTopping) acc.wc++;
+                return acc;
+            }, { mc: 0, dc: 0, or: 0, wc: 0 });
+            
+            document.getElementById('totalMC').textContent = totals.mc;
+            document.getElementById('totalDC').textContent = totals.dc;
+            document.getElementById('totalOR').textContent = totals.or;
+            document.getElementById('totalWC').textContent = totals.wc;
+            document.getElementById('totalPieces').textContent = totals.mc + totals.dc + totals.or;
+            
+            updateOrdersList();
+        }
+
+        function updateRunnerDashboard() {
+            // Commission calculations
+            const deliveredOrders = orders.filter(o => o.delivered);
+            const totalCookies = deliveredOrders.reduce((sum, order) => sum + order.totalCookies, 0);
+            const commission = totalCookies * 0.25;
+            
+            document.getElementById('runnerTotalCookies').textContent = totalCookies;
+            document.getElementById('runnerCommission').textContent = commission.toFixed(2);
+            document.getElementById('runnerPendingDeliveries').textContent = orders.filter(o => !o.delivered).length;
+            
+            // Statistics
+            document.getElementById('runnerTotalOrders').textContent = orders.length;
+            document.getElementById('runnerPendingOrders').textContent = orders.filter(o => !o.delivered).length;
+            document.getElementById('runnerCompletedOrders').textContent = orders.filter(o => o.delivered).length;
+            
+            const totalRevenue = orders.reduce((sum, order) => sum + order.price, 0);
+            document.getElementById('runnerTotalRevenue').textContent = totalRevenue.toFixed(2);
+            
+            // Cookie totals
+            const totals = orders.reduce((acc, order) => {
+                acc.mc += order.mcQty;
+                acc.dc += order.dcQty;
+                acc.or += order.orQty;
+                if (order.wcTopping) acc.wc++;
+                return acc;
+            }, { mc: 0, dc: 0, or: 0, wc: 0 });
+            
+            document.getElementById('runnerTotalMC').textContent = totals.mc;
+            document.getElementById('runnerTotalDC').textContent = totals.dc;
+            document.getElementById('runnerTotalOR').textContent = totals.or;
+            document.getElementById('runnerTotalWC').textContent = totals.wc;
+            document.getElementById('runnerTotalPieces').textContent = totals.mc + totals.dc + totals.or;
+            
+            updateRunnerOrdersList();
+        }
+
+        function updateOrdersList() {
+            const container = document.getElementById('ordersList');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            orders.slice().reverse().forEach(order => {
+                const orderCard = createOrderCard(order, 'owner');
+                container.appendChild(orderCard);
+            });
+        }
+
+        function updateRunnerOrdersList() {
+            const container = document.getElementById('runnerOrdersList');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            orders.slice().reverse().forEach(order => {
+                const orderCard = createOrderCard(order, 'runner');
+                container.appendChild(orderCard);
+            });
+        }
+
+        function createOrderCard(order, dashboardType) {
+            const div = document.createElement('div');
+            div.className = 'order-card';
+            if (order.delivered) div.classList.add('delivered');
+            if (order.paid) div.classList.add('payment-received');
+            
+            let orderDetails = '';
+            if (order.mcQty > 0) orderDetails += `MC:${order.mcQty} `;
+            if (order.dcQty > 0) orderDetails += `DC:${order.dcQty} `;
+            if (order.orQty > 0) orderDetails += `OR:${order.orQty} `;
+            if (order.wcTopping) orderDetails += 'WC+ ';
+            
+            const timestamp = new Date(order.timestamp).toLocaleString();
+            
+            div.innerHTML = `
+                <div class="order-info">
+                    <div class="customer-name">${order.name}${order.isRedemption ? ' (Point Redemption)' : ''}</div>
+                    <div class="order-detail">Room: ${order.room}</div>
+                    <div class="order-detail">${orderDetails.trim()}</div>
+                    <div class="order-detail">${timestamp}</div>
+                    <div class="buyer-id">${order.buyerId}</div>
+                </div>
+                <div class="order-price">RM${order.price.toFixed(2)}</div>
+                <div class="order-actions">
+                    ${!order.delivered ? `<button class="btn-action btn-delivered" onclick="markDelivered(${order.id})">Delivered</button>` : `<button class="btn-action btn-undo" onclick="undoDelivered(${order.id})">Undo</button>`}
+                    ${!order.paid && !order.isRedemption ? `<button class="btn-action btn-paid" onclick="markPaid(${order.id})">Paid</button>` : ''}
+                    ${order.paid && !order.isRedemption ? `<button class="btn-action btn-undo" onclick="undoPaid(${order.id})">Undo Pay</button>` : ''}
+                    <button class="btn-action btn-delete" onclick="deleteOrder(${order.id})">Delete</button>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        function markDelivered(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.delivered = true;
+                localStorage.setItem('cookieOrders', JSON.stringify(orders));
+                if (currentMode === 'owner') updateOwnerDashboard();
+                if (currentMode === 'runner') updateRunnerDashboard();
+                showNotification('Order marked as delivered!', 'success');
+            }
+        }
+
+        function undoDelivered(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.delivered = false;
+                localStorage.setItem('cookieOrders', JSON.stringify(orders));
+                if (currentMode === 'owner') updateOwnerDashboard();
+                if (currentMode === 'runner') updateRunnerDashboard();
+                showNotification('Delivery status undone!', 'success');
+            }
+        }
+
+        function markPaid(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.paid = true;
+                localStorage.setItem('cookieOrders', JSON.stringify(orders));
+                if (currentMode === 'owner') updateOwnerDashboard();
+                if (currentMode === 'runner') updateRunnerDashboard();
+                showNotification('Payment received!', 'success');
+            }
+        }
+
+        function undoPaid(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.paid = false;
+                localStorage.setItem('cookieOrders', JSON.stringify(orders));
+                if (currentMode === 'owner') updateOwnerDashboard();
+                if (currentMode === 'runner') updateRunnerDashboard();
+                showNotification('Payment status undone!', 'success');
+            }
+        }
+
+        function deleteOrder(orderId) {
+            if (confirm('Are you sure you want to delete this order?')) {
+                const orderIndex = orders.findIndex(o => o.id === orderId);
+                if (orderIndex > -1) {
+                    const order = orders[orderIndex];
+                    
+                    // Restore stock
+                    stock.mc += order.mcQty;
+                    stock.dc += order.dcQty;
+                    stock.or += order.orQty;
+                    localStorage.setItem('cookieStock', JSON.stringify(stock));
+                    
+                    orders.splice(orderIndex, 1);
+                    localStorage.setItem('cookieOrders', JSON.stringify(orders));
+                    
+                    updateStock();
+                    updateCustomerStockDisplay();
+                    
+                    if (currentMode === 'owner') updateOwnerDashboard();
+                    if (currentMode === 'runner') updateRunnerDashboard();
+                    showNotification('Order deleted and stock restored!', 'success');
+                }
+            }
+        }
+
+        function clearAllOrders() {
+            if (confirm('Are you sure you want to clear all orders? This cannot be undone.')) {
+                orders = [];
+                localStorage.setItem('cookieOrders', JSON.stringify(orders));
+                updateOwnerDashboard();
+                showNotification('All orders cleared!', 'success');
+            }
+        }
+
+        function clearAllRunnerOrders() {
+            if (confirm('Are you sure you want to clear all orders? This cannot be undone.')) {
+                orders = [];
+                localStorage.setItem('cookieOrders', JSON.stringify(orders));
+                updateRunnerDashboard();
+                showNotification('All orders cleared!', 'success');
+            }
+        }
+
+        function exportOrders() {
+            if (orders.length === 0) {
+                showNotification('No orders to export', 'error');
+                return;
+            }
+            
+            let csv = 'Name,Room,Buyer ID,Milk Chocolate,Double Chocolate,Original,WC Topping,Total Cookies,Price,Timestamp,Delivered,Paid\n';
+            
+            orders.forEach(order => {
+                csv += `"${order.name}","${order.room}","${order.buyerId}",${order.mcQty},${order.dcQty},${order.orQty},${order.wcTopping ? 'Yes' : 'No'},${order.totalCookies},${order.price},"${order.timestamp}",${order.delivered ? 'Yes' : 'No'},${order.paid ? 'Yes' : 'No'}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cookie-orders-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('Orders exported successfully!', 'success');
+        }
+
+        function exportRunnerOrders() {
+            if (orders.length === 0) {
+                showNotification('No orders to export', 'error');
+                return;
+            }
+            
+            let csv = 'Name,Room,Buyer ID,Milk Chocolate,Double Chocolate,Original,WC Topping,Total Cookies,Price,Commission,Timestamp,Delivered,Paid\n';
+            
+            orders.forEach(order => {
+                const commission = order.delivered ? (order.totalCookies * 0.25).toFixed(2) : '0.00';
+                csv += `"${order.name}","${order.room}","${order.buyerId}",${order.mcQty},${order.dcQty},${order.orQty},${order.wcTopping ? 'Yes' : 'No'},${order.totalCookies},${order.price},${commission},"${order.timestamp}",${order.delivered ? 'Yes' : 'No'},${order.paid ? 'Yes' : 'No'}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `runner-orders-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('Runner orders exported successfully!', 'success');
+        }
+
+        function parseBulkOrders() {
+            const text = document.getElementById('bulkTextarea').value.trim();
+            if (!text) {
+                showNotification('Please enter bulk order data', 'error');
+                return;
+            }
+            
+            const lines = text.split('\n').filter(line => line.trim());
+            const parsedOrders = [];
+            const errors = [];
+            
+            lines.forEach((line, index) => {
+                try {
+                    const parsed = parseBulkOrderLine(line);
+                    if (parsed) {
+                        parsedOrders.push(parsed);
+                    }
+                } catch (error) {
+                    errors.push(`Line ${index + 1}: ${error.message}`);
+                }
+            });
+            
+            if (errors.length > 0) {
+                showNotification(`Parsing errors:\n${errors.join('\n')}`, 'error');
+                return;
+            }
+            
+            // Process all parsed orders
+            let totalProcessed = 0;
+            parsedOrders.forEach(orderData => {
+                const order = {
+                    id: Date.now() + totalProcessed,
+                    name: orderData.name,
+                    room: orderData.room,
+                    buyerId: 'BULK-ORDER',
+                    mcQty: orderData.mcQty,
+                    dcQty: orderData.dcQty,
+                    orQty: orderData.orQty,
+                    wcTopping: orderData.wcTopping,
+                    totalCookies: orderData.mcQty + orderData.dcQty + orderData.orQty,
+                    price: orderData.price,
+                    timestamp: new Date().toISOString(),
+                    delivered: false,
+                    paid: false
+                };
+                
+                orders.push(order);
+                totalProcessed++;
+            });
+            
+            localStorage.setItem('cookieOrders', JSON.stringify(orders));
+            updateOwnerDashboard();
+            
+            // Show results
+            displayBulkParseResults(parsedOrders);
+            showNotification(`${totalProcessed} orders processed successfully!`, 'success');
+        }
+
+        function parseRunnerBulkOrders() {
+            const text = document.getElementById('runnerBulkTextarea').value.trim();
+            if (!text) {
+                showNotification('Please enter bulk order data', 'error');
+                return;
+            }
+            
+            const lines = text.split('\n').filter(line => line.trim());
+            const parsedOrders = [];
+            const errors = [];
+            
+            lines.forEach((line, index) => {
+                try {
+                    const parsed = parseBulkOrderLine(line);
+                    if (parsed) {
+                        parsedOrders.push(parsed);
+                    }
+                } catch (error) {
+                    errors.push(`Line ${index + 1}: ${error.message}`);
+                }
+            });
+            
+            if (errors.length > 0) {
+                showNotification(`Parsing errors:\n${errors.join('\n')}`, 'error');
+                return;
+            }
+            
+            // Process all parsed orders
+            let totalProcessed = 0;
+            parsedOrders.forEach(orderData => {
+                const order = {
+                    id: Date.now() + totalProcessed,
+                    name: orderData.name,
+                    room: orderData.room,
+                    buyerId: 'BULK-ORDER',
+                    mcQty: orderData.mcQty,
+                    dcQty: orderData.dcQty,
+                    orQty: orderData.orQty,
+                    wcTopping: orderData.wcTopping,
+                    totalCookies: orderData.mcQty + orderData.dcQty + orderData.orQty,
+                    price: orderData.price,
+                    timestamp: new Date().toISOString(),
+                    delivered: false,
+                    paid: false
+                };
+                
+                orders.push(order);
+                totalProcessed++;
+            });
+            
+            localStorage.setItem('cookieOrders', JSON.stringify(orders));
+            updateRunnerDashboard();
+            
+            // Show results
+            displayRunnerBulkParseResults(parsedOrders);
+            showNotification(`${totalProcessed} orders processed successfully!`, 'success');
+        }
+
+        function parseBulkOrderLine(line) {
+            // Expected format: Name - Room - MC:2, DC:1, OR:3, WC topping
+            const parts = line.split(' - ');
+            if (parts.length < 3) {
+                throw new Error('Invalid format. Expected: Name - Room - Orders');
+            }
+            
+            const name = parts[0].trim();
+            const room = parts[1].trim();
+            const orderText = parts[2].trim();
+            
+            if (!name || !room) {
+                throw new Error('Name and room are required');
+            }
+            
+            let mcQty = 0, dcQty = 0, orQty = 0, wcTopping = false;
+            
+            // Parse order components
+            const components = orderText.split(',').map(c => c.trim());
+            components.forEach(component => {
+                if (component.match(/MC:\s*(\d+)/i)) {
+                    mcQty = parseInt(component.match(/MC:\s*(\d+)/i)[1]);
+                } else if (component.match(/DC:\s*(\d+)/i)) {
+                    dcQty = parseInt(component.match(/DC:\s*(\d+)/i)[1]);
+                } else if (component.match(/OR:\s*(\d+)/i)) {
+                    orQty = parseInt(component.match(/OR:\s*(\d+)/i)[1]);
+                } else if (component.match(/WC\s+topping/i)) {
+                    wcTopping = true;
+                }
+            });
+            
+            const totalCookies = mcQty + dcQty + orQty;
+            if (totalCookies === 0) {
+                throw new Error('No cookies specified');
+            }
+            
+            // Calculate price
+            let price = 0;
+            if (totalCookies === 1) price = 2;
+            else if (totalCookies === 2) price = 3;
+            else {
+                let currentPrice = 3;
+                for (let i = 3; i <= totalCookies; i++) {
+                    if (i % 2 === 1) {
+                        currentPrice += 2;
+                    } else {
+                        currentPrice += 1;
+                    }
+                }
+                price = currentPrice;
+            }
+            
+            if (wcTopping) {
+                price += 1;
+            }
+            
+            return { name, room, mcQty, dcQty, orQty, wcTopping, price };
+        }
+
+        function displayBulkParseResults(parsedOrders) {
+            const container = document.getElementById('parseResult');
+            container.classList.remove('hidden');
+            
+            let html = '<div class="parse-totals">';
+            const totals = parsedOrders.reduce((acc, order) => {
+                acc.orders++;
+                acc.mc += order.mcQty;
+                acc.dc += order.dcQty;
+                acc.or += order.orQty;
+                acc.price += order.price;
+                if (order.wcTopping) acc.wc++;
+                return acc;
+            }, { orders: 0, mc: 0, dc: 0, or: 0, wc: 0, price: 0 });
+            
+            html += `<strong>Summary: ${totals.orders} orders, ${totals.mc + totals.dc + totals.or} cookies, RM${totals.price.toFixed(2)}</strong>`;
+            html += '</div>';
+            
+            parsedOrders.forEach((order, index) => {
+                html += `<div class="parse-item">`;
+                html += `<div class="parse-header">${index + 1}. ${order.name} - ${order.room}</div>`;
+                html += `<div class="parse-details">`;
+                if (order.mcQty > 0) html += `MC:${order.mcQty} `;
+                if (order.dcQty > 0) html += `DC:${order.dcQty} `;
+                if (order.orQty > 0) html += `OR:${order.orQty} `;
+                if (order.wcTopping) html += `WC+ `;
+                html += `- RM${order.price.toFixed(2)}`;
+                html += `</div></div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function displayRunnerBulkParseResults(parsedOrders) {
+            const container = document.getElementById('runnerParseResult');
+            container.classList.remove('hidden');
+            
+            let html = '<div class="parse-totals">';
+            const totals = parsedOrders.reduce((acc, order) => {
+                acc.orders++;
+                acc.mc += order.mcQty;
+                acc.dc += order.dcQty;
+                acc.or += order.orQty;
+                acc.price += order.price;
+                if (order.wcTopping) acc.wc++;
+                return acc;
+            }, { orders: 0, mc: 0, dc: 0, or: 0, wc: 0, price: 0 });
+            
+            html += `<strong>Summary: ${totals.orders} orders, ${totals.mc + totals.dc + totals.or} cookies, RM${totals.price.toFixed(2)}</strong>`;
+            html += '</div>';
+            
+            parsedOrders.forEach((order, index) => {
+                html += `<div class="parse-item">`;
+                html += `<div class="parse-header">${index + 1}. ${order.name} - ${order.room}</div>`;
+                html += `<div class="parse-details">`;
+                if (order.mcQty > 0) html += `MC:${order.mcQty} `;
+                if (order.dcQty > 0) html += `DC:${order.dcQty} `;
+                if (order.orQty > 0) html += `OR:${order.orQty} `;
+                if (order.wcTopping) html += `WC+ `;
+                html += `- RM${order.price.toFixed(2)}`;
+                html += `</div></div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function clearBulkOrders() {
+            document.getElementById('bulkTextarea').value = '';
+            document.getElementById('parseResult').classList.add('hidden');
+        }
+
+        function clearRunnerBulkOrders() {
+            document.getElementById('runnerBulkTextarea').value = '';
+            document.getElementById('runnerParseResult').classList.add('hidden');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function updateUI() {
+            const savedBusinessId = localStorage.getItem('currentBusinessId');
+            if (savedBusinessId) {
+                currentBusinessId = savedBusinessId;
+                showScreen('customerInterface');
+                document.getElementById('businessInfo').classList.remove('hidden');
+                document.getElementById('buyerId').textContent = currentBusinessId;
+                updateCustomerPoints();
+            }
+        }
+    </script>
+</body>
+</html>
